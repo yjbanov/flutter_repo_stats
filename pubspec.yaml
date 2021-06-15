@@ -1,5 +1,5 @@
 name: repostats
-description: A new Flutter project.
+description: Collects various repository statistics.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0
 

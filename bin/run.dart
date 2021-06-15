@@ -35,35 +35,35 @@ const Repo _kPlugins = Repo(
   name: 'plugins',
   path: 'C:\\code\\tmp\\repostats\\repos\\plugins',
   layers: <String>[
-    'packages/android_alarm_manager',
-    'packages/android_intent',
-    'packages/battery',
-    'packages/camera',
-    'packages/connectivity',
-    'packages/cross_file',
-    'packages/device_info',
-    'packages/e2e',
-    'packages/espresso',
-    'packages/file_selector',
-    'packages/flutter_plugin_android_lifecycle',
-    'packages/google_maps_flutter',
-    'packages/google_sign_in',
-    'packages/image_picker',
-    'packages/integration_test',
-    'packages/in_app_purchase',
-    'packages/ios_platform_images',
-    'packages/local_auth',
-    'packages/package_info',
-    'packages/path_provider',
-    'packages/plugin_platform_interface',
-    'packages/quick_actions',
-    'packages/sensors',
-    'packages/share',
-    'packages/shared_preferences',
-    'packages/url_launcher',
-    'packages/video_player',
-    'packages/webview_flutter',
-    'packages/wifi_info_flutter',
+    'packages/android_alarm_manager/',
+    'packages/android_intent/',
+    'packages/battery/',
+    'packages/camera/',
+    'packages/connectivity/',
+    'packages/cross_file/',
+    'packages/device_info/',
+    'packages/e2e/',
+    'packages/espresso/',
+    'packages/file_selector/',
+    'packages/flutter_plugin_android_lifecycle/',
+    'packages/google_maps_flutter/',
+    'packages/google_sign_in/',
+    'packages/image_picker/',
+    'packages/integration_test/',
+    'packages/in_app_purchase/',
+    'packages/ios_platform_images/',
+    'packages/local_auth/',
+    'packages/package_info/',
+    'packages/path_provider/',
+    'packages/plugin_platform_interface/',
+    'packages/quick_actions/',
+    'packages/sensors/',
+    'packages/share/',
+    'packages/shared_preferences/',
+    'packages/url_launcher/',
+    'packages/video_player/',
+    'packages/webview_flutter/',
+    'packages/wifi_info_flutter/',
   ],
 );
 
@@ -71,23 +71,23 @@ const Repo _kPackages = Repo(
   name: 'packages',
   path: 'C:\\code\\tmp\\repostats\\repos\\packages',
   layers: <String>[
-    'packages/animations',
-    'packages/cross_file',
-    'packages/css_colors',
-    'packages/extension_google_sign_in_as_googleapis_auth',
-    'packages/flutter_image',
-    'packages/flutter_lints',
-    'packages/flutter_markdown',
-    'packages/flutter_template_images',
-    'packages/fuchsia_ctl',
-    'packages/imitation_game',
-    'packages/metrics_center',
-    'packages/multicast_dns',
-    'packages/palette_generator',
-    'packages/pigeon',
-    'packages/pointer_interceptor',
-    'packages/web_benchmarks',
-    'packages/xdg_directories',
+    'packages/animations/',
+    'packages/cross_file/',
+    'packages/css_colors/',
+    'packages/extension_google_sign_in_as_googleapis_auth/',
+    'packages/flutter_image/',
+    'packages/flutter_lints/',
+    'packages/flutter_markdown/',
+    'packages/flutter_template_images/',
+    'packages/fuchsia_ctl/',
+    'packages/imitation_game/',
+    'packages/metrics_center/',
+    'packages/multicast_dns/',
+    'packages/palette_generator/',
+    'packages/pigeon/',
+    'packages/pointer_interceptor/',
+    'packages/web_benchmarks/',
+    'packages/xdg_directories/',
   ],
 );
 
@@ -95,6 +95,20 @@ const Repo _kGallery = Repo(name: 'gallery',   path: 'C:\\code\\tmp\\repostats\\
 const Repo _kWebsite = Repo(name: 'website',   path: 'C:\\code\\tmp\\repostats\\repos\\website');
 const Repo _kBuildroot = Repo(name: 'buildroot', path: 'C:\\code\\tmp\\repostats\\repos\\buildroot');
 const Repo _kWebInstallers = Repo(name: 'web_installers', path: 'C:\\code\\tmp\\repostats\\repos\\web_installers');
+const Repo _kAssetsForApiDocs = Repo(name: 'assets-for-api-docs', path: 'C:\\code\\tmp\\repostats\\repos\\assets-for-api-docs');
+const Repo _kCocoon = Repo(name: 'cocoon', path: 'C:\\code\\tmp\\repostats\\repos\\cocoon');
+const Repo _kDevtools = Repo(
+  name: 'devtools',
+  path: 'C:\\code\\tmp\\repostats\\repos\\devtools',
+  layers: <String>[
+    'packages/devtools/',
+    'packages/devtools_app/',
+    'packages/devtools_server/',
+    'packages/devtools_shared/',
+  ],
+);
+const Repo _kInfra = Repo(name: 'infra', path: 'C:\\code\\tmp\\repostats\\repos\\infra');
+const Repo _kTests = Repo(name: 'tests', path: 'C:\\code\\tmp\\repostats\\repos\\tests');
 
 
 // An active contributor is someone submitting at least 1 commit/month.
@@ -178,7 +192,13 @@ class RepoStats {
   late final Map<String, int> byAuthorCommitCounts;
   late final List<String> authors;
 
-  int get crossLayerCommitCount => humanCommits.where((c) => c.isCrossLayer).length;
+  int get multiLayerCommitCount => humanCommits.where((c) => c.crossLayer == CrossLayer.multiLayer).length;
+  int get singleLayerCommitCount => humanCommits.where((c) => c.crossLayer == CrossLayer.singleLayer).length;
+  int get nonLayerCommitCount => humanCommits.where((c) => c.crossLayer == CrossLayer.nonLayer).length;
+  int get layerCommitCount => multiLayerCommitCount + singleLayerCommitCount;
+
+  /// Percentage of commits that cross layers.
+  String get crossLayerCommitPortion => _percent(multiLayerCommitCount, layerCommitCount);
 }
 
 class AuthorStats {
@@ -212,6 +232,11 @@ Future<void> main(List<String> args) async {
     _kWebsite,
     _kBuildroot,
     _kWebInstallers,
+    _kAssetsForApiDocs,
+    _kCocoon,
+    _kDevtools,
+    _kInfra,
+    _kTests,
   ];
 
   final ProjectStats humanStats = await _computeProjectStats(repos);
@@ -272,21 +297,27 @@ Future<void> _saveProjectStats(String fileName, ProjectStats projectStats) async
 void _printHumanAggregates(ProjectStats projectStats) {
   print('Statistics since $_since');
   int totalCommitCount = 0;
-  int totalCrossLayerCommitCount = 0;
+  int totalMultiLayerCommitCount = 0;
+  int totalLayerCommitCount = 0;
   for (RepoStats repoStats in projectStats.repoStats) {
     totalCommitCount += repoStats.humanCommits.length;
-    totalCrossLayerCommitCount += repoStats.crossLayerCommitCount;
+    totalMultiLayerCommitCount += repoStats.multiLayerCommitCount;
+    totalLayerCommitCount += repoStats.multiLayerCommitCount + repoStats.singleLayerCommitCount;
   }
-  print('$totalCommitCount commits globally, '
-        'of which $totalCrossLayerCommitCount '
-        '(${_percent(totalCrossLayerCommitCount, totalCommitCount)}) '
-        'are cross-layer.');
+
+  // All commits
+  print('$totalCommitCount commits globally');
+  for (RepoStats repoStats in projectStats.repoStats) {
+    print('  ${repoStats.humanCommits.length} commits in ${repoStats.repo.name}');
+  }
+
+  // Cross-layer commits
+  print('$totalLayerCommitCount layer commits globally, $totalMultiLayerCommitCount '
+        '(${_percent(totalMultiLayerCommitCount, totalLayerCommitCount)}) cross-layer');
 
   for (RepoStats repoStats in projectStats.repoStats) {
-    print('  ${repoStats.humanCommits.length} commits in ${repoStats.repo.name}, '
-          'of which ${repoStats.crossLayerCommitCount} '
-          '(${_percent(repoStats.crossLayerCommitCount, repoStats.humanCommits.length)}) '
-          'are cross-layer.');
+    print('  ${repoStats.layerCommitCount} layer commits in ${repoStats.repo.name}, ${repoStats.multiLayerCommitCount} '
+          '(${repoStats.crossLayerCommitPortion}) cross-layer');
   }
 
   final List<AuthorStats> activeContributors = projectStats.authorStats
@@ -403,6 +434,9 @@ T _max<T extends num>(Iterable<T> values) {
 }
 
 String _percent(num portion, num total) {
+  if (total == 0) {
+    return 'N/A';
+  }
   final double percent = 100 * portion / total;
   return '${percent.toStringAsFixed(2)}%';
 }
@@ -481,6 +515,15 @@ Future<List<Commit>> _gitLog(Repo repo) async {
   return commits;
 }
 
+enum CrossLayer {
+  /// The commit changes multiple layers.
+  multiLayer,
+  /// The commit changes only one layer.
+  singleLayer,
+  /// The commit does not change code participating in a layered architecture (e.g. CI configuration commit).
+  nonLayer,
+}
+
 class Commit {
   factory Commit({
     required repo,
@@ -517,7 +560,7 @@ class Commit {
       message: message,
       files: files,
       messageLines: messageLines,
-      isCrossLayer: _isCrossLayer(repo, files),
+      crossLayer: _getCrossLayerType(repo, files),
       isRevert: isRevert,
       revertedCommit: revertedCommit,
       isAutoroll: isAutoroll,
@@ -537,16 +580,16 @@ class Commit {
     required this.message,
     required this.files,
     required this.messageLines,
-    required this.isCrossLayer,
+    required this.crossLayer,
     required this.isRevert,
     required this.revertedCommit,
     required this.isAutoroll,
     required this.autorollInfo,
   });
 
-  static bool _isCrossLayer(Repo repo, List<String> files) {
+  static CrossLayer _getCrossLayerType(Repo repo, List<String> files) {
     if (repo.layers.isEmpty) {
-      return false;
+      return CrossLayer.nonLayer;
     }
     final Set<String> changedLayers = <String>{};
     for (String file in files) {
@@ -556,7 +599,13 @@ class Commit {
         }
       }
     }
-    return changedLayers.length > 1;
+    if (changedLayers.length == 0) {
+      return CrossLayer.nonLayer;
+    } else if (changedLayers.length == 1) {
+      return CrossLayer.singleLayer;
+    } else {
+      return CrossLayer.multiLayer;
+    }
   }
 
   final Repo repo;
@@ -566,7 +615,7 @@ class Commit {
   final String message;
   final List<String> files;
   final List<String> messageLines;
-  final bool isCrossLayer;
+  final CrossLayer crossLayer;
   final bool isRevert;
   final String? revertedCommit;
   final isAutoroll;
