@@ -1,6 +1,102 @@
 import 'dart:convert';
 import 'dart:io' as io;
 
+const Repo _kFramework = Repo(
+  name: 'framework',
+  path: 'C:\\code\\tmp\\repostats\\repos\\flutter',
+  layers: <String>[
+    'packages/flutter/lib/src/animation/',
+    'packages/flutter/lib/src/cupertino/',
+    'packages/flutter/lib/src/foundation/',
+    'packages/flutter/lib/src/gestures/',
+    'packages/flutter/lib/src/material/',
+    'packages/flutter/lib/src/painting/',
+    'packages/flutter/lib/src/physics/',
+    'packages/flutter/lib/src/rendering/',
+    'packages/flutter/lib/src/scheduler/',
+    'packages/flutter/lib/src/semantics/',
+    'packages/flutter/lib/src/services/',
+    'packages/flutter/lib/src/widgets/',
+    'packages/flutter_driver/',
+    'packages/flutter_goldens/',
+    'packages/flutter_goldens_client/',
+    'packages/flutter_localizations/',
+    'packages/flutter_test/',
+    'packages/flutter_tools/',
+    'packages/flutter_web_plugins/',
+    'packages/flutter_remote_debug_protocol/',
+    'packages/integration_test/',
+  ],
+);
+
+const Repo _kEngine = Repo(name: 'engine',    path: 'C:\\code\\tmp\\repostats\\repos\\engine');
+
+const Repo _kPlugins = Repo(
+  name: 'plugins',
+  path: 'C:\\code\\tmp\\repostats\\repos\\plugins',
+  layers: <String>[
+    'packages/android_alarm_manager',
+    'packages/android_intent',
+    'packages/battery',
+    'packages/camera',
+    'packages/connectivity',
+    'packages/cross_file',
+    'packages/device_info',
+    'packages/e2e',
+    'packages/espresso',
+    'packages/file_selector',
+    'packages/flutter_plugin_android_lifecycle',
+    'packages/google_maps_flutter',
+    'packages/google_sign_in',
+    'packages/image_picker',
+    'packages/integration_test',
+    'packages/in_app_purchase',
+    'packages/ios_platform_images',
+    'packages/local_auth',
+    'packages/package_info',
+    'packages/path_provider',
+    'packages/plugin_platform_interface',
+    'packages/quick_actions',
+    'packages/sensors',
+    'packages/share',
+    'packages/shared_preferences',
+    'packages/url_launcher',
+    'packages/video_player',
+    'packages/webview_flutter',
+    'packages/wifi_info_flutter',
+  ],
+);
+
+const Repo _kPackages = Repo(
+  name: 'packages',
+  path: 'C:\\code\\tmp\\repostats\\repos\\packages',
+  layers: <String>[
+    'packages/animations',
+    'packages/cross_file',
+    'packages/css_colors',
+    'packages/extension_google_sign_in_as_googleapis_auth',
+    'packages/flutter_image',
+    'packages/flutter_lints',
+    'packages/flutter_markdown',
+    'packages/flutter_template_images',
+    'packages/fuchsia_ctl',
+    'packages/imitation_game',
+    'packages/metrics_center',
+    'packages/multicast_dns',
+    'packages/palette_generator',
+    'packages/pigeon',
+    'packages/pointer_interceptor',
+    'packages/web_benchmarks',
+    'packages/xdg_directories',
+  ],
+);
+
+const Repo _kGallery = Repo(name: 'gallery',   path: 'C:\\code\\tmp\\repostats\\repos\\gallery');
+const Repo _kWebsite = Repo(name: 'website',   path: 'C:\\code\\tmp\\repostats\\repos\\website');
+const Repo _kBuildroot = Repo(name: 'buildroot', path: 'C:\\code\\tmp\\repostats\\repos\\buildroot');
+const Repo _kWebInstallers = Repo(name: 'web_installers', path: 'C:\\code\\tmp\\repostats\\repos\\web_installers');
+
+
 // An active contributor is someone submitting at least 1 commit/month.
 const int _kActiveContributorCommitCount = 12;
 
@@ -29,57 +125,60 @@ class Repo {
   final List<String> layers;
 
   @override
-  int get hashCode => name.hashCode + 17 * path.hashCode;
+  int get hashCode => name.hashCode;
 
   @override
   bool operator==(Object? other) {
-    return other is Repo && name == other.name && path == other.path;
+    return other is Repo && name == other.name;
   }
 
-  Future<RepoStats> getRepoStats(bool Function(String) authorPredicate) async {
-    final List<Commit> commits = await _gitLog(this);
-    final Map<String, int> stats = <String, int>{};
-    for (Commit commit in commits) {
-      final String author = commit.author;
-      if (authorPredicate(author)) {
-        stats[author] ??= 0;
-        stats[author] = stats[author]! + 1;
-      }
-    }
+  Future<RepoStats> getRepoStats() async {
     return RepoStats(
       repo: this,
-      stats: stats,
-      commits: commits,
+      allCommits: await _gitLog(this),
     );
   }
 }
 
 class ProjectStats {
   ProjectStats({
+    required this.repos,
     required this.repoStats,
     required this.authorStats,
   });
 
   final List<RepoStats> repoStats;
   final List<AuthorStats> authorStats;
-
-  List<Repo> get repos => repoStats.map((s) => s.repo).toList();
-  RepoStats forRepo(String repoName) => repoStats.firstWhere((s) => s.repo.name == repoName);
+  final List<Repo> repos;
+  RepoStats statsFor(Repo repo) => repoStats[repos.indexOf(repo)];
 }
 
 class RepoStats {
   RepoStats({
     required this.repo,
-    required this.stats,
-    required this.commits,
+    required this.allCommits,
   }) {
-    totalCommitCount = stats.values.fold(0, (prev, count) => prev + count);
+    humanCommits = allCommits.where((commit) => !commit.isAutoroll).toList();
+    autorollCommits = allCommits.where((commit) => commit.isAutoroll).toList();
+    byAuthorCommitCounts = <String, int>{};
+    final Set<String> uniqueAuthors = <String>{};
+    for (Commit commit in humanCommits) {
+      final String author = commit.author;
+      final int currentCount = byAuthorCommitCounts[author] ?? 0;
+      byAuthorCommitCounts[author] = currentCount + 1;
+      uniqueAuthors.add(author);
+    }
+    authors = uniqueAuthors.toList();
   }
 
   final Repo repo;
-  final Map<String, int> stats;
-  late final int totalCommitCount;
-  final List<Commit> commits;
+  final List<Commit> allCommits;
+  late final List<Commit> humanCommits;
+  late final List<Commit> autorollCommits;
+  late final Map<String, int> byAuthorCommitCounts;
+  late final List<String> authors;
+
+  int get crossLayerCommitCount => humanCommits.where((c) => c.isCrossLayer).length;
 }
 
 class AuthorStats {
@@ -105,131 +204,46 @@ class AuthorStats {
 
 Future<void> main(List<String> args) async {
   const List<Repo> repos = <Repo>[
-    Repo(
-      name: 'framework',
-      path: 'C:\\code\\tmp\\repostats\\repos\\flutter',
-      layers: <String>[
-        'packages/flutter/lib/src/animation/',
-        'packages/flutter/lib/src/cupertino/',
-        'packages/flutter/lib/src/foundation/',
-        'packages/flutter/lib/src/gestures/',
-        'packages/flutter/lib/src/material/',
-        'packages/flutter/lib/src/painting/',
-        'packages/flutter/lib/src/physics/',
-        'packages/flutter/lib/src/rendering/',
-        'packages/flutter/lib/src/scheduler/',
-        'packages/flutter/lib/src/semantics/',
-        'packages/flutter/lib/src/services/',
-        'packages/flutter/lib/src/widgets/',
-        'packages/flutter_driver/',
-        'packages/flutter_goldens/',
-        'packages/flutter_goldens_client/',
-        'packages/flutter_localizations/',
-        'packages/flutter_test/',
-        'packages/flutter_tools/',
-        'packages/flutter_web_plugins/',
-        'packages/flutter_remote_debug_protocol/',
-        'packages/integration_test/',
-      ],
-    ),
-    Repo(name: 'engine',    path: 'C:\\code\\tmp\\repostats\\repos\\engine'),
-    Repo(
-      name: 'plugins',
-      path: 'C:\\code\\tmp\\repostats\\repos\\plugins',
-      layers: <String>[
-        'packages/android_alarm_manager',
-        'packages/android_intent',
-        'packages/battery',
-        'packages/camera',
-        'packages/connectivity',
-        'packages/cross_file',
-        'packages/device_info',
-        'packages/e2e',
-        'packages/espresso',
-        'packages/file_selector',
-        'packages/flutter_plugin_android_lifecycle',
-        'packages/google_maps_flutter',
-        'packages/google_sign_in',
-        'packages/image_picker',
-        'packages/integration_test',
-        'packages/in_app_purchase',
-        'packages/ios_platform_images',
-        'packages/local_auth',
-        'packages/package_info',
-        'packages/path_provider',
-        'packages/plugin_platform_interface',
-        'packages/quick_actions',
-        'packages/sensors',
-        'packages/share',
-        'packages/shared_preferences',
-        'packages/url_launcher',
-        'packages/video_player',
-        'packages/webview_flutter',
-        'packages/wifi_info_flutter',
-      ],
-    ),
-    Repo(
-      name: 'packages',
-      path: 'C:\\code\\tmp\\repostats\\repos\\packages',
-      layers: <String>[
-        'packages/animations',
-        'packages/cross_file',
-        'packages/css_colors',
-        'packages/extension_google_sign_in_as_googleapis_auth',
-        'packages/flutter_image',
-        'packages/flutter_lints',
-        'packages/flutter_markdown',
-        'packages/flutter_template_images',
-        'packages/fuchsia_ctl',
-        'packages/imitation_game',
-        'packages/metrics_center',
-        'packages/multicast_dns',
-        'packages/palette_generator',
-        'packages/pigeon',
-        'packages/pointer_interceptor',
-        'packages/web_benchmarks',
-        'packages/xdg_directories',
-      ],
-    ),
-    Repo(name: 'gallery',   path: 'C:\\code\\tmp\\repostats\\repos\\gallery'),
-    // Repo(name: 'website',   path: 'C:\\code\\tmp\\repostats\\repos\\website'),
-    Repo(name: 'buildroot', path: 'C:\\code\\tmp\\repostats\\repos\\buildroot'),
-    Repo(name: 'web_installers', path: 'C:\\code\\tmp\\repostats\\repos\\web_installers'),
+    _kFramework,
+    _kEngine,
+    _kPlugins,
+    _kPackages,
+    _kGallery,
+    _kWebsite,
+    _kBuildroot,
+    _kWebInstallers,
   ];
 
-  bool isRoller(String author) => author.contains('-autoroll');
-  final ProjectStats humanStats = await _computeProjectStats(repos, (author) => !isRoller(author));
-  final ProjectStats botStats = await _computeProjectStats(repos, isRoller);
+  final ProjectStats humanStats = await _computeProjectStats(repos);
   _printHumanAggregates(humanStats);
   await _saveProjectStats('author_stats.tsv', humanStats);
-  await _saveProjectStats('roller_stats.tsv', botStats);
 }
 
-Future<ProjectStats> _computeProjectStats(List<Repo> repos, bool Function(String) authorPredicate) async {
+Future<ProjectStats> _computeProjectStats(List<Repo> repos) async {
   final List<RepoStats> allRepoStats = <RepoStats>[];
+  final Set<String> allAuthors = <String>{};
   for (Repo repo in repos) {
-    allRepoStats.add(await repo.getRepoStats(authorPredicate));
+    final RepoStats repoStats = await repo.getRepoStats();
+    allRepoStats.add(repoStats);
+    allAuthors.addAll(repoStats.authors);
   }
 
-  final Set<String> authors = <String>{
-    ...allRepoStats.expand((e) => e.stats.keys)
-  };
-
-  final List<AuthorStats> allAuthorStats = <AuthorStats>[];
-  for (String author in authors) {
+  final List<AuthorStats> authorStats = <AuthorStats>[];
+  for (String author in allAuthors) {
     final Map<Repo, int> authorCommits = <Repo, int>{};
     for (RepoStats repoStats in allRepoStats) {
-      int commitCount = repoStats.stats[author] ?? 0;
+      int commitCount = repoStats.byAuthorCommitCounts[author] ?? 0;
       authorCommits[repoStats.repo] = commitCount;
     }
-    allAuthorStats.add(AuthorStats(
+    authorStats.add(AuthorStats(
       author: author,
       commits: authorCommits,
     ));
   }
   return ProjectStats(
+    repos: repos,
     repoStats: allRepoStats,
-    authorStats: allAuthorStats,
+    authorStats: authorStats,
   );
 }
 
@@ -255,21 +269,27 @@ Future<void> _saveProjectStats(String fileName, ProjectStats projectStats) async
   statsFile.writeAsStringSync(buf.toString());
 }
 
-final RegExp _kRollRevisionCount = RegExp(r'\((\d)+ revision[s]?\)');
-
-void _printHumanAggregates(ProjectStats humanStats) {
+void _printHumanAggregates(ProjectStats projectStats) {
   print('Statistics since $_since');
   int totalCommitCount = 0;
-  for (RepoStats repoStats in humanStats.repoStats) {
-    totalCommitCount += repoStats.totalCommitCount;
+  int totalCrossLayerCommitCount = 0;
+  for (RepoStats repoStats in projectStats.repoStats) {
+    totalCommitCount += repoStats.humanCommits.length;
+    totalCrossLayerCommitCount += repoStats.crossLayerCommitCount;
   }
-  print('$totalCommitCount commits globally');
+  print('$totalCommitCount commits globally, '
+        'of which $totalCrossLayerCommitCount '
+        '(${_percent(totalCrossLayerCommitCount, totalCommitCount)}) '
+        'are cross-layer.');
 
-  for (RepoStats repoStats in humanStats.repoStats) {
-    print('  ${repoStats.commits.length} commits in ${repoStats.repo.name}');
+  for (RepoStats repoStats in projectStats.repoStats) {
+    print('  ${repoStats.humanCommits.length} commits in ${repoStats.repo.name}, '
+          'of which ${repoStats.crossLayerCommitCount} '
+          '(${_percent(repoStats.crossLayerCommitCount, repoStats.humanCommits.length)}) '
+          'are cross-layer.');
   }
 
-  final List<AuthorStats> activeContributors = humanStats.authorStats
+  final List<AuthorStats> activeContributors = projectStats.authorStats
     .where((AuthorStats stats) => stats.totalCommitCount >= _kActiveContributorCommitCount)
     .toList();
 
@@ -277,7 +297,7 @@ void _printHumanAggregates(ProjectStats humanStats) {
   for (AuthorStats contributorStats in activeContributors) {
     activeContributorCommits += contributorStats.totalCommitCount;
   }
-  print('${activeContributors.length} contributors contributed at least 1 commit per month, and are deemed "active contributors".');
+  print('${activeContributors.length} contributors contributed at least 1 commit per month (active contributors).');
   print('$activeContributorCommits commits (or ${_percent(activeContributorCommits, totalCommitCount)} of total) came from active contributors.');
 
   print('Contributors whose main repo portion is ${100 * _kCrossRepoThreshold}% or less are "cross-repo contributors".');
@@ -288,10 +308,10 @@ void _printHumanAggregates(ProjectStats humanStats) {
 
   print('Which repo splits contributors have to work across the most (a.k.a. repo hoppers):');
   final Map<RepoLink, int> repoLinks = <RepoLink, int>{};
-  for (int i = 0; i < humanStats.repos.length; i++) {
-    final Repo fromRepo = humanStats.repos[i];
-    for (int j = i + 1; j < humanStats.repos.length; j++) {
-      final Repo toRepo = humanStats.repos[j];
+  for (int i = 0; i < projectStats.repos.length; i++) {
+    final Repo fromRepo = projectStats.repos[i];
+    for (int j = i + 1; j < projectStats.repos.length; j++) {
+      final Repo toRepo = projectStats.repos[j];
       final RepoLink link = RepoLink(from: fromRepo, to: toRepo);
       for (AuthorStats authorStats in activeContributors) {
         if (authorStats.percentages[fromRepo]! > 0.1 && authorStats.percentages[toRepo]! > _kRepoHopperThreshold) {
@@ -306,32 +326,50 @@ void _printHumanAggregates(ProjectStats humanStats) {
   });
 
   print('Reverts:');
-  int engineRollCount = 0;
-  int engineRollRevertCount = 0;
-  int engineRollRevertedCommitCount = 0;
-  for (RepoStats repoStats in humanStats.repoStats) {
+  for (RepoStats repoStats in projectStats.repoStats) {
     int revertCount = 0;
-    for (Commit commit in repoStats.commits) {
+    for (Commit commit in repoStats.humanCommits) {
       if (commit.isRevert) {
         revertCount += 1;
-        if (repoStats.repo.name == 'framework') {
-          final Match? revisionCountMatch = _kRollRevisionCount.firstMatch(commit.messageLines.first);
-          if (revisionCountMatch != null) {
-            engineRollRevertCount += 1;
-            engineRollRevertedCommitCount += int.parse(revisionCountMatch.group(1)!);
-          }
-          if (commit.author.contains('engine-flutter-autoroll')) {
-            engineRollCount += 1;
-          }
-        }
       }
     }
     print('  ${repoStats.repo.name} $revertCount');
   }
-  print('Engine was rolled $engineRollCount times.');
-  print('Engine rolls were reverted $engineRollRevertCount times (${_percent(engineRollRevertCount, engineRollCount)}).');
-  print('Engine reverts reverted $engineRollRevertedCommitCount commits.');
-  print('On average an engine revert reverted ${(engineRollRevertedCommitCount / engineRollRevertCount).toStringAsFixed(2)} commits.');
+
+  _printEngineRollStats(projectStats);
+}
+
+void _printEngineRollStats(ProjectStats projectStats) {
+  final RepoStats frameworkStats = projectStats.statsFor(_kFramework);
+
+  print('Engine rolls:');
+  int engineRollRevertCount = 0;
+  int engineRollRevertedCommitCount = 0;
+  for (RepoStats repoStats in projectStats.repoStats) {
+    for (Commit commit in repoStats.humanCommits) {
+      final AutorollInfo? autorollInfo = commit.autorollInfo;
+      if (commit.isRevert && autorollInfo != null) {
+        if (repoStats.repo == _kFramework) {
+          engineRollRevertCount += 1;
+          engineRollRevertedCommitCount += autorollInfo.commitCount ?? 0;
+        }
+      }
+    }
+  }
+
+  final int engineRollCount = frameworkStats.autorollCommits.length;
+  final int engineRollCommitCount = frameworkStats.autorollCommits.fold(0, (prev, value) => prev + (value.autorollInfo!.commitCount ?? 0));
+  final int frameworkRevertCount = frameworkStats.humanCommits.where((c) => c.isRevert).length;
+  final String percentOfRollsReverted = _percent(engineRollRevertCount, engineRollCount);
+  final String percentOfReverts = _percent(engineRollRevertCount, frameworkRevertCount);
+
+  print('  Engine was rolled $engineRollCount times.');
+  print('  $engineRollCommitCount engine commits were rolled into the framework, including rerolled commits.');
+  print('  Engine rolls were reverted $engineRollRevertCount times ($percentOfRollsReverted of roll, $percentOfReverts of reverts).');
+  print('  On average an engine roll is reverted once every ${(365 / engineRollRevertCount).toStringAsFixed(1)} days');
+  print('  Engine reverts reverted $engineRollRevertedCommitCount commits.');
+  print('  On average an engine commit is reverted due to roller revert once every ${(365 / engineRollRevertedCommitCount).toStringAsFixed(1)} days');
+  print('  On average an engine revert reverted ${(engineRollRevertedCommitCount / engineRollRevertCount).toStringAsFixed(2)} commits.');
 }
 
 class RepoLink {
@@ -456,6 +494,20 @@ class Commit {
       .split('\n')
       .where((String line) => line.trim().isNotEmpty)
       .toList();
+    final bool isAutoroll = author.contains('-autoroll');
+    final bool isRevert = message.trim().toLowerCase().startsWith('revert');
+
+    String? revertedCommit;
+    if (isRevert) {
+      for (String line in messageLines) {
+        const String revertMessage = 'This reverts commit';
+        final int indexOfRevertMessage = line.indexOf(revertMessage);
+        if (indexOfRevertMessage != -1) {
+          revertedCommit = line.substring(indexOfRevertMessage + revertMessage.length).trim();
+          break;
+        }
+      }
+    }
 
     return Commit._(
       repo: repo,
@@ -464,9 +516,16 @@ class Commit {
       date: date,
       message: message,
       files: files,
-      isCrossLayer: _isCrossLayer(repo, files),
-      isRevert: message.trim().toLowerCase().startsWith('revert'),
       messageLines: messageLines,
+      isCrossLayer: _isCrossLayer(repo, files),
+      isRevert: isRevert,
+      revertedCommit: revertedCommit,
+      isAutoroll: isAutoroll,
+      autorollInfo: AutorollInfo.fromMessage(
+        messageLines: messageLines,
+        isAutoroll: isAutoroll,
+        isRevert: isRevert,
+      ),
     );
   }
 
@@ -477,9 +536,12 @@ class Commit {
     required this.date,
     required this.message,
     required this.files,
+    required this.messageLines,
     required this.isCrossLayer,
     required this.isRevert,
-    required this.messageLines,
+    required this.revertedCommit,
+    required this.isAutoroll,
+    required this.autorollInfo,
   });
 
   static bool _isCrossLayer(Repo repo, List<String> files) {
@@ -503,9 +565,12 @@ class Commit {
   final DateTime date;
   final String message;
   final List<String> files;
+  final List<String> messageLines;
   final bool isCrossLayer;
   final bool isRevert;
-  final List<String> messageLines;
+  final String? revertedCommit;
+  final isAutoroll;
+  final AutorollInfo? autorollInfo;
 
   String toString() {
     return '''commit $sha
@@ -515,4 +580,66 @@ $message
 ${files.join('\n')}
 ''';
   }
+}
+
+// Looks for strings like "(4 revisions)" and "(1 revision)" that are
+// included by the autorollers in the commit messages.
+final RegExp _kRollRevisionCount = RegExp(r'\((\d)+ revision[s]?\)');
+
+class AutorollInfo {
+  AutorollInfo({
+    required this.commitCount,
+    required this.fromCommit,
+    required this.toCommit,
+  });
+
+  static final RegExp _kRevisionRange = RegExp(r'from ([a-z0-9]{12}) to ([a-z0-9]{12})');
+  static final RegExp _kFuchsiaRevisionRange = RegExp(r'from ([a-zA-Z0-9\-_]{5,})\.\.\. to ([a-zA-Z0-9\-_]{5,})\.\.\.');
+
+  static AutorollInfo? fromMessage({
+    required List<String> messageLines,
+    required bool isRevert,
+    required bool isAutoroll,
+  }) {
+    try {
+      if (!isRevert && !isAutoroll) {
+        // Autoroll information is only available on autorolls or
+        // reverts of autorolls.
+        return null;
+      }
+
+      if (isRevert && !messageLines.first.toLowerCase().contains('roll ')) {
+        // The change that's being reverted doesn't appear to be a roll.
+        return null;
+      }
+
+      final Match? revisionCountMatch = _kRollRevisionCount.firstMatch(messageLines.first);
+      final int? commitCount = revisionCountMatch != null
+        ? int.parse(revisionCountMatch.group(1)!)
+        : null;
+
+      Match? revisionRangeMatch = _kRevisionRange.firstMatch(messageLines.first);
+      if (revisionRangeMatch == null) {
+        revisionRangeMatch = _kFuchsiaRevisionRange.firstMatch(messageLines.first);
+      }
+      final String? fromCommit = revisionRangeMatch?.group(1)!;
+      final String? toCommit = revisionRangeMatch?.group(2)!;
+
+      return AutorollInfo(
+        commitCount: commitCount,
+        fromCommit: fromCommit,
+        toCommit: toCommit,
+      );
+    } catch (error) {
+      print('''
+Failed to parse autoroll info (revert: $isRevert, autoroll: $isAutoroll):
+  ${messageLines.join('\n  ')}
+'''.trim());
+      rethrow;
+    }
+  }
+
+  final int? commitCount;
+  final String? fromCommit;
+  final String? toCommit;
 }
