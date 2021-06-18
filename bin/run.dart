@@ -228,19 +228,19 @@ Future<void> main(List<String> args) async {
     _kEngine,
     _kPlugins,
     _kPackages,
-    _kGallery,
-    _kWebsite,
-    _kBuildroot,
-    _kWebInstallers,
-    _kAssetsForApiDocs,
-    _kCocoon,
-    _kDevtools,
-    _kInfra,
+    // _kGallery,
+    // _kWebsite,
+    // _kBuildroot,
+    // _kWebInstallers,
+    // _kAssetsForApiDocs,
+    // _kCocoon,
+    // _kDevtools,
+    // _kInfra,
     _kTests,
   ];
 
   final ProjectStats humanStats = await _computeProjectStats(repos);
-  _printHumanAggregates(humanStats);
+  await _printHumanAggregates(humanStats);
   await _saveProjectStats('author_stats.tsv', humanStats);
 }
 
@@ -294,7 +294,7 @@ Future<void> _saveProjectStats(String fileName, ProjectStats projectStats) async
   statsFile.writeAsStringSync(buf.toString());
 }
 
-void _printHumanAggregates(ProjectStats projectStats) {
+Future<void> _printHumanAggregates(ProjectStats projectStats) async {
   print('Statistics since $_since');
   int totalCommitCount = 0;
   int totalMultiLayerCommitCount = 0;
@@ -308,7 +308,9 @@ void _printHumanAggregates(ProjectStats projectStats) {
   // All commits
   print('$totalCommitCount commits globally');
   for (RepoStats repoStats in projectStats.repoStats) {
-    print('  ${repoStats.humanCommits.length} commits in ${repoStats.repo.name}');
+    print('  ${repoStats.humanCommits.length} commits in '
+          '${repoStats.repo.name} '
+          '(${_percent(repoStats.humanCommits.length, totalCommitCount)})');
   }
 
   // Cross-layer commits
@@ -367,10 +369,10 @@ void _printHumanAggregates(ProjectStats projectStats) {
     print('  ${repoStats.repo.name} $revertCount');
   }
 
-  _printEngineRollStats(projectStats);
+  await _printEngineRollStats(projectStats);
 }
 
-void _printEngineRollStats(ProjectStats projectStats) {
+Future<void> _printEngineRollStats(ProjectStats projectStats) async {
   final RepoStats frameworkStats = projectStats.statsFor(_kFramework);
 
   print('Engine rolls:');
@@ -401,6 +403,12 @@ void _printEngineRollStats(ProjectStats projectStats) {
   print('  Engine reverts reverted $engineRollRevertedCommitCount commits.');
   print('  On average an engine commit is reverted due to roller revert once every ${(365 / engineRollRevertedCommitCount).toStringAsFixed(1)} days');
   print('  On average an engine revert reverted ${(engineRollRevertedCommitCount / engineRollRevertCount).toStringAsFixed(2)} commits.');
+
+  final List<Commit> engineRolls = await _gitLog(_kFramework, 'bin\\internal\\engine.version');
+  print('Engine rolls + reverts: ${engineRolls.length}');
+  print('  Autoroll: ${engineRolls.where((c) => c.isAutoroll && !c.isRevert).length}');
+  print('  Manual  : ${engineRolls.where((c) => !c.isAutoroll && !c.isRevert).length}');
+  print('  Revert  : ${engineRolls.where((c) => c.isRevert).length}');
 }
 
 class RepoLink {
@@ -443,9 +451,16 @@ String _percent(num portion, num total) {
 
 final RegExp _commitLinePrefix = RegExp(r'commit ([a-z0-9]{40})');
 
-Future<List<Commit>> _gitLog(Repo repo) async {
+Future<List<Commit>> _gitLog(Repo repo, [String? subpath]) async {
   final io.Process gitLog = await io.Process.start(
-    'git', ['log', '--since="$_since"', '--date=iso8601', '--name-only'],
+    'git', [
+      'log',
+      '--since="$_since"',
+      '--date=iso8601',
+      '--name-only',
+      if (subpath != null)
+        subpath,
+    ],
     workingDirectory: repo.path,
   );
   _watchExitCode('git log', gitLog);
