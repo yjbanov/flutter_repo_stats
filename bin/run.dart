@@ -14,6 +14,7 @@
 
 import 'dart:convert';
 import 'dart:io' as io;
+import 'package:args/args.dart';
 
 const String repoCheckoutRoot = '/Users/yjbanov/code/tmp/repostats';
 
@@ -159,13 +160,15 @@ class ProjectStats {
 class RepoStats {
   RepoStats({
     required this.repo,
-    required List<Commit> allCommits,
+    required this.allCommits,
   }) {
-    humanCommits = allCommits.where((commit) => commit.isHuman).toList();
+    humanAuthoredCommits = allCommits.where((commit) => commit.isHumanAuthored).toList();
+    humanInitiatedCommits = allCommits.where((commit) => commit.isHumanInitiated).toList();
     autorollCommits = allCommits.where((commit) => commit.isAutoroll).toList();
+    botCommits = allCommits.where((commit) => commit.isBot).toList();
     byAuthorCommitCounts = <String, int>{};
     final uniqueAuthors = <String>{};
-    for (final commit in humanCommits) {
+    for (final commit in humanAuthoredCommits) {
       final author = commit.author;
       final currentCount = byAuthorCommitCounts[author] ?? 0;
       byAuthorCommitCounts[author] = currentCount + 1;
@@ -175,14 +178,17 @@ class RepoStats {
   }
 
   final Repo repo;
-  late final List<Commit> humanCommits;
+  final List<Commit> allCommits;
+  late final List<Commit> humanAuthoredCommits;
+  late final List<Commit> humanInitiatedCommits;
   late final List<Commit> autorollCommits;
+  late final List<Commit> botCommits;
   late final Map<String, int> byAuthorCommitCounts;
   late final List<String> authors;
 
-  int get multiLayerCommitCount => humanCommits.where((c) => c.crossLayer == CrossLayer.multiLayer).length;
-  int get singleLayerCommitCount => humanCommits.where((c) => c.crossLayer == CrossLayer.singleLayer).length;
-  int get nonLayerCommitCount => humanCommits.where((c) => c.crossLayer == CrossLayer.nonLayer).length;
+  int get multiLayerCommitCount => humanAuthoredCommits.count((c) => c.crossLayer == CrossLayer.multiLayer);
+  int get singleLayerCommitCount => humanAuthoredCommits.count((c) => c.crossLayer == CrossLayer.singleLayer);
+  int get nonLayerCommitCount => humanAuthoredCommits.count((c) => c.crossLayer == CrossLayer.nonLayer);
   int get layerCommitCount => multiLayerCommitCount + singleLayerCommitCount;
 
   /// Percentage of commits that cross layers.
@@ -210,7 +216,15 @@ class AuthorStats {
   double get mainRepoLoad => _max(percentages.values);
 }
 
-Future<void> main(List<String> args) async {
+final ArgParser _argParser = ArgParser()
+  ..addFlag('verbose');
+
+late bool verbose;
+
+Future<void> main(List<String> rawArgs) async {
+  final args = _argParser.parse(rawArgs);
+  verbose = args.flag('verbose');
+
   const repos = <Repo>[
     _kFramework,
     _kEngine,
@@ -274,30 +288,39 @@ Future<void> _saveProjectStats(String fileName, ProjectStats projectStats) async
 
 void _printHumanAggregates(ProjectStats projectStats) {
   print('Statistics since $_since');
-  var totalCommitCount = 0;
-  var totalMultiLayerCommitCount = 0;
-  var totalLayerCommitCount = 0;
+  var totalHumanCommitCount = 0;
+  var totalBotCommitCount = 0;
   for (final repoStats in projectStats.repoStats) {
-    totalCommitCount += repoStats.humanCommits.length;
-    totalMultiLayerCommitCount += repoStats.multiLayerCommitCount;
-    totalLayerCommitCount += repoStats.multiLayerCommitCount + repoStats.singleLayerCommitCount;
+    totalHumanCommitCount += repoStats.humanAuthoredCommits.length;
+    totalBotCommitCount += repoStats.botCommits.length;
   }
 
   // All commits
-  print('$totalCommitCount commits globally');
+  print('$totalHumanCommitCount human commits globally');
   for (final repoStats in projectStats.repoStats) {
-    print('  ${repoStats.humanCommits.length} commits in ${repoStats.repo.name}');
+    print('  ${repoStats.humanAuthoredCommits.length} commits in ${repoStats.repo.name}');
+  }
+
+  // Bots
+  print('${totalBotCommitCount} bot commits globally');
+  for (final repoStats in projectStats.repoStats) {
+    print('  ${repoStats.botCommits.length} bot commits in ${repoStats.repo.name}');
   }
 
   // Cross-layer commits
-  print('$totalLayerCommitCount layer commits globally, $totalMultiLayerCommitCount '
-        '(${_percent(totalMultiLayerCommitCount, totalLayerCommitCount)}) cross-layer');
+  print('Cross-layer commits:');
 
   for (final repoStats in projectStats.repoStats) {
-    print('  ${repoStats.layerCommitCount} layer commits in ${repoStats.repo.name}, ${repoStats.multiLayerCommitCount} '
-          '(${repoStats.crossLayerCommitPortion}) cross-layer');
+    if (repoStats.repo.layers.isEmpty) {
+      // Repo doesn't have layers; skip.
+      continue;
+    }
+    print('  ${repoStats.repo.name}: ${repoStats.multiLayerCommitCount} cross-layer commits '
+          '(${repoStats.crossLayerCommitPortion})');
   }
 
+  // Active contributors
+  print('Active contributors:');
   final activeContributors = projectStats.authorStats
     .where((AuthorStats stats) => stats.totalCommitCount >= _kActiveContributorCommitCount)
     .toList();
@@ -305,26 +328,28 @@ void _printHumanAggregates(ProjectStats projectStats) {
     return b.totalCommitCount - a.totalCommitCount;
   });
 
-  print('Active contributors:');
-  for (final contributor in activeContributors) {
-    print('  > ${contributor.author} (${contributor.totalCommitCount})');
+  if (verbose) {
+    for (final contributor in activeContributors) {
+      print('  > ${contributor.author} (${contributor.totalCommitCount})');
+    }
   }
 
   var activeContributorCommits = 0;
   for (final contributorStats in activeContributors) {
     activeContributorCommits += contributorStats.totalCommitCount;
   }
-  print('${activeContributors.length} contributors contributed at least 1 commit per month (active contributors).');
-  print('$activeContributorCommits commits (or ${_percent(activeContributorCommits, totalCommitCount)} of total) came from active contributors.');
+  print(' ${activeContributors.length} contributors contributed at least 1 commit per month (active contributors).');
+  print(' $activeContributorCommits commits (or ${_percent(activeContributorCommits, totalHumanCommitCount)} of total) came from active contributors.');
 
-  print('Contributors whose main repo portion is ${100 * _kCrossRepoThreshold}% or less are "cross-repo contributors".');
+  print('Cross-repo contributions:');
+  print('  Contributors whose main repo portion is ${100 * _kCrossRepoThreshold}% or less are "cross-repo contributors".');
   final crossRepoContributors = activeContributors
     .where((AuthorStats stats) => stats.mainRepoLoad < _kCrossRepoThreshold)
     .toList();
   final crossRepoContributorCount = crossRepoContributors.length;
-  print('There have been $crossRepoContributorCount cross-repo contributors (or ${_percent(crossRepoContributorCount, activeContributors.length)} of all active).');
+  print('  There have been $crossRepoContributorCount cross-repo contributors (or ${_percent(crossRepoContributorCount, activeContributors.length)} of all active).');
 
-  print('Which repo splits contributors have to work across the most (a.k.a. repo hoppers):');
+  print('  Which repo splits contributors have to work across the most (a.k.a. repo hoppers):');
   final repoLinks = <RepoLink, int>{};
   for (var i = 0; i < projectStats.repos.length; i++) {
     final fromRepo = projectStats.repos[i];
@@ -340,13 +365,13 @@ void _printHumanAggregates(ProjectStats projectStats) {
     }
   }
   repoLinks.forEach((RepoLink link, int count) {
-    print('  ${link.from.name} | ${link.to.name}: $count contributors');
+    print('    ${link.from.name} | ${link.to.name}: $count contributors');
   });
 
   print('Reverts:');
   for (final repoStats in projectStats.repoStats) {
     var revertCount = 0;
-    for (final commit in repoStats.humanCommits) {
+    for (final commit in repoStats.humanInitiatedCommits) {
       if (commit.isRevert) {
         revertCount += 1;
       }
@@ -361,31 +386,31 @@ void _printEngineRollStats(ProjectStats projectStats) {
   final frameworkStats = projectStats.statsFor(_kFramework);
 
   print('Engine rolls:');
-  var engineRollRevertCount = 0;
+  final engineRollRevertCount = frameworkStats.allCommits.count((c) => c.isEngineVersionChange && c.isRevert);
   var engineRollRevertedCommitCount = 0;
-  for (final repoStats in projectStats.repoStats) {
-    for (final commit in repoStats.humanCommits) {
-      final autorollInfo = commit.autorollInfo;
-      if (commit.isRevert && autorollInfo != null) {
-        if (repoStats.repo == _kFramework) {
-          engineRollRevertCount += 1;
+  for (final commit in frameworkStats.allCommits) {
+    final autorollInfo = commit.autorollInfo;
+    if (commit.isRevert && commit.isEngineVersionChange) {
+      if (frameworkStats.repo == _kFramework) {
+        if (autorollInfo != null) {
           engineRollRevertedCommitCount += autorollInfo.commitCount ?? 0;
         }
       }
     }
   }
 
+  final versionUpdateCount = frameworkStats.allCommits.count((c) => c.isEngineVersionChange);
   final engineRollCount = frameworkStats.autorollCommits.length;
+  final manualEngineRollCount = frameworkStats.humanInitiatedCommits.count((c) => c.isManualEngineRoll);
   final engineRollCommitCount = frameworkStats.autorollCommits.fold<int>(0, (prev, value) => prev + (value.autorollInfo!.commitCount ?? 0));
-  final frameworkRevertCount = frameworkStats.humanCommits.where((c) => c.isRevert).length;
-  final percentOfRollsReverted = _percent(engineRollRevertCount, engineRollCount);
-  final percentOfReverts = _percent(engineRollRevertCount, frameworkRevertCount);
 
-  print('  Engine was rolled $engineRollCount times.');
-  print('  $engineRollCommitCount engine commits were rolled into the framework, including rerolled commits.');
-  print('  Engine rolls were reverted $engineRollRevertCount times ($percentOfRollsReverted of roll, $percentOfReverts of reverts).');
+  print('  Version updated ${versionUpdateCount} times.');
+  print('  Auto-rolled ${engineRollCount} times.');
+  print('  Manually rolled ${manualEngineRollCount} times.');
+  print('  Rolls reverted ${engineRollRevertCount} times (once every ${(365 / engineRollRevertCount).toStringAsFixed(1)} days).');
+  print('  ${engineRollCommitCount} engine commits were rolled into the framework, including rerolled commits.');
   print('  On average an engine roll is reverted once every ${(365 / engineRollRevertCount).toStringAsFixed(1)} days');
-  print('  Engine reverts reverted $engineRollRevertedCommitCount commits.');
+  print('  Engine reverts reverted ${engineRollRevertedCommitCount} commits.');
   print('  On average an engine commit is reverted due to roller revert once every ${(365 / engineRollRevertedCommitCount).toStringAsFixed(1)} days');
   print('  On average an engine revert reverted ${(engineRollRevertedCommitCount / engineRollRevertCount).toStringAsFixed(2)} commits.');
 }
@@ -525,11 +550,13 @@ class Commit {
       .where((String line) => line.trim().isNotEmpty)
       .toList();
     final isAutoroll = author.contains('-autoroll');
+    final isAutosubmitBot = author.contains('auto-submit');
     final isBot =
+      isAutoroll ||
       author.contains('dependabot') ||
       author.contains('pub-roller-bot') ||
-      author.contains('auto-submit') ||
       author.contains('Flutter GitHub Bot');
+
     final isRevert = message.trim().toLowerCase().startsWith('revert');
 
     String? revertedCommit;
@@ -544,6 +571,8 @@ class Commit {
       }
     }
 
+    final isEngineVersionChange = _isEngineVersionChange(files);
+
     return Commit._(
       repo: repo,
       sha: sha,
@@ -556,7 +585,9 @@ class Commit {
       isRevert: isRevert,
       revertedCommit: revertedCommit,
       isBot: isBot,
+      isAutosubmitBot: isAutosubmitBot,
       isAutoroll: isAutoroll,
+      isEngineVersionChange: isEngineVersionChange,
       autorollInfo: AutorollInfo.fromMessage(
         messageLines: messageLines,
         isAutoroll: isAutoroll,
@@ -577,9 +608,20 @@ class Commit {
     required this.isRevert,
     required this.revertedCommit,
     required this.isBot,
+    required this.isAutosubmitBot,
     required this.isAutoroll,
+    required this.isEngineVersionChange,
     required this.autorollInfo,
   });
+
+  static bool _isEngineVersionChange(List<String> files) {
+    for (final file in files) {
+      if (file.contains('internal/engine.version')) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   static CrossLayer _getCrossLayerType(Repo repo, List<String> files) {
     if (repo.layers.isEmpty) {
@@ -613,10 +655,20 @@ class Commit {
   final bool isRevert;
   final String? revertedCommit;
   final bool isBot;
+  final bool isAutosubmitBot;
   final bool isAutoroll;
+  final bool isEngineVersionChange;
   final AutorollInfo? autorollInfo;
 
-  bool get isHuman => !isBot && !isAutoroll;
+  bool get isManualEngineRoll => isHumanInitiated && isEngineVersionChange && !isRevert;
+
+  /// Commit contents were hand-written with no automation.
+  bool get isHumanAuthored => !isBot;
+
+  /// A human took action (perhaps after an investigation) to initiate the commit,
+  /// but the commit contents may have been automated. For example, a human
+  /// may have used the `revert` label to revert an engine roll.
+  bool get isHumanInitiated => isHumanAuthored || isAutosubmitBot;
 
   @override
   String toString() {
@@ -688,4 +740,10 @@ Failed to parse autoroll info (revert: $isRevert, autoroll: $isAutoroll):
   final int? commitCount;
   final String? fromCommit;
   final String? toCommit;
+}
+
+extension CountExtension<T> on Iterable<T> {
+  int count(bool Function(T element) predicate) {
+    return where(predicate).length;
+  }
 }
