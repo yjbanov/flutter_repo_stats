@@ -112,9 +112,6 @@ const double _kCrossRepoThreshold = 0.9;
 // repo divide.
 const double _kRepoHopperThreshold = 0.1;
 
-// The git stats are collected since this date.
-const String _since = '2023-06-28';
-
 class Repo {
   const Repo({
     required this.name,
@@ -215,15 +212,24 @@ class AuthorStats {
 }
 
 final ArgParser _argParser = ArgParser()
-  ..addFlag('verbose');
+  ..addFlag('verbose')
+  ..addOption('since');
 
 late bool verbose;
 late String repoCheckoutRoot;
+// The git stats are collected since this date.
+late String since;
 
 Future<void> main(List<String> rawArgs) async {
   final args = _argParser.parse(rawArgs);
   verbose = args.flag('verbose');
   repoCheckoutRoot = args.rest.isNotEmpty ? args.rest.single : 'repos';
+
+  if (args.wasParsed('since')) {
+    since = args['since'] as String;
+  } else {
+    since = DateTime.now().subtract(const Duration(days: 365)).toString().substring(0, 10);
+  }
 
   print('Looking for repos in ${io.Directory(repoCheckoutRoot).absolute.path}');
   _checkDir(repoCheckoutRoot);
@@ -301,7 +307,7 @@ Future<void> _saveProjectStats(String fileName, ProjectStats projectStats) async
 }
 
 void _printHumanAggregates(ProjectStats projectStats) {
-  print('Statistics since $_since');
+  print('Statistics between $since and ${DateTime.now().toString().substring(0, 10)}');
   var totalHumanCommitCount = 0;
   var totalBotCommitCount = 0;
   for (final repoStats in projectStats.repoStats) {
@@ -471,7 +477,7 @@ final RegExp _commitLinePrefix = RegExp(r'commit ([a-z0-9]{40})');
 
 Future<List<Commit>> _gitLog(Repo repo) async {
   final gitLog = await io.Process.start(
-    'git', ['log', '--since="$_since"', '--date=iso8601', '--name-only'],
+    'git', ['log', '--since="$since"', '--date=iso8601', '--name-only'],
     workingDirectory: repo.path,
   );
   _watchExitCode('git log', gitLog);
@@ -567,6 +573,7 @@ class Commit {
     final isAutosubmitBot = author.contains('auto-submit');
     final isBot =
       isAutoroll ||
+      isAutosubmitBot ||
       author.contains('dependabot') ||
       author.contains('pub-roller-bot') ||
       author.contains('Flutter GitHub Bot');
@@ -586,6 +593,7 @@ class Commit {
     }
 
     final isEngineVersionChange = _isEngineVersionChange(files);
+    final crossLayer = _getCrossLayerType(repo, files);
 
     return Commit._(
       repo: repo,
@@ -595,7 +603,7 @@ class Commit {
       message: message,
       files: files,
       messageLines: messageLines,
-      crossLayer: _getCrossLayerType(repo, files),
+      crossLayer: crossLayer,
       isRevert: isRevert,
       revertedCommit: revertedCommit,
       isBot: isBot,
