@@ -1,9 +1,25 @@
+// Copyright 2014 The Flutter Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 import 'dart:convert';
 import 'dart:io' as io;
 
+const String repoCheckoutRoot = '/Users/yjbanov/code/tmp/repostats';
+
 const Repo _kFramework = Repo(
   name: 'framework',
-  path: '/Users/yjbanov/code/tmp/repostats/flutter',
+  path: '$repoCheckoutRoot/flutter',
   layers: <String>[
     'packages/flutter/lib/src/animation/',
     'packages/flutter/lib/src/cupertino/',
@@ -30,12 +46,12 @@ const Repo _kFramework = Repo(
 
 const Repo _kEngine = Repo(
   name: 'engine',
-  path: '/Users/yjbanov/code/tmp/repostats/engine',
+  path: '$repoCheckoutRoot/engine',
 );
 
 const Repo _kPackages = Repo(
   name: 'packages',
-  path: '/Users/yjbanov/code/tmp/repostats/packages',
+  path: '$repoCheckoutRoot/packages',
   layers: <String>[
     'packages/animations/',
     'packages/interactive_media_ads/',
@@ -360,7 +376,7 @@ void _printEngineRollStats(ProjectStats projectStats) {
   }
 
   final engineRollCount = frameworkStats.autorollCommits.length;
-  final engineRollCommitCount = frameworkStats.autorollCommits.fold(0, (prev, value) => prev + (value.autorollInfo!.commitCount ?? 0));
+  final engineRollCommitCount = frameworkStats.autorollCommits.fold<int>(0, (prev, value) => prev + (value.autorollInfo!.commitCount ?? 0));
   final frameworkRevertCount = frameworkStats.humanCommits.where((c) => c.isRevert).length;
   final percentOfRollsReverted = _percent(engineRollRevertCount, engineRollCount);
   final percentOfReverts = _percent(engineRollRevertCount, frameworkRevertCount);
