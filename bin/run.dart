@@ -3,7 +3,7 @@ import 'dart:io' as io;
 
 const Repo _kFramework = Repo(
   name: 'framework',
-  path: 'C:\\code\\tmp\\repostats\\repos\\flutter',
+  path: '/Users/yjbanov/code/tmp/repostats/flutter',
   layers: <String>[
     'packages/flutter/lib/src/animation/',
     'packages/flutter/lib/src/cupertino/',
@@ -19,7 +19,6 @@ const Repo _kFramework = Repo(
     'packages/flutter/lib/src/widgets/',
     'packages/flutter_driver/',
     'packages/flutter_goldens/',
-    'packages/flutter_goldens_client/',
     'packages/flutter_localizations/',
     'packages/flutter_test/',
     'packages/flutter_tools/',
@@ -29,94 +28,68 @@ const Repo _kFramework = Repo(
   ],
 );
 
-const Repo _kEngine = Repo(name: 'engine',    path: 'C:\\code\\tmp\\repostats\\repos\\engine');
-
-const Repo _kPlugins = Repo(
-  name: 'plugins',
-  path: 'C:\\code\\tmp\\repostats\\repos\\plugins',
-  layers: <String>[
-    'packages/android_alarm_manager/',
-    'packages/android_intent/',
-    'packages/battery/',
-    'packages/camera/',
-    'packages/connectivity/',
-    'packages/cross_file/',
-    'packages/device_info/',
-    'packages/e2e/',
-    'packages/espresso/',
-    'packages/file_selector/',
-    'packages/flutter_plugin_android_lifecycle/',
-    'packages/google_maps_flutter/',
-    'packages/google_sign_in/',
-    'packages/image_picker/',
-    'packages/integration_test/',
-    'packages/in_app_purchase/',
-    'packages/ios_platform_images/',
-    'packages/local_auth/',
-    'packages/package_info/',
-    'packages/path_provider/',
-    'packages/plugin_platform_interface/',
-    'packages/quick_actions/',
-    'packages/sensors/',
-    'packages/share/',
-    'packages/shared_preferences/',
-    'packages/url_launcher/',
-    'packages/video_player/',
-    'packages/webview_flutter/',
-    'packages/wifi_info_flutter/',
-  ],
+const Repo _kEngine = Repo(
+  name: 'engine',
+  path: '/Users/yjbanov/code/tmp/repostats/engine',
 );
 
 const Repo _kPackages = Repo(
   name: 'packages',
-  path: 'C:\\code\\tmp\\repostats\\repos\\packages',
+  path: '/Users/yjbanov/code/tmp/repostats/packages',
   layers: <String>[
     'packages/animations/',
+    'packages/interactive_media_ads/',
+    'packages/camera/',
+    'packages/ios_platform_images/',
     'packages/cross_file/',
+    'packages/local_auth/',
     'packages/css_colors/',
-    'packages/extension_google_sign_in_as_googleapis_auth/',
-    'packages/flutter_image/',
-    'packages/flutter_lints/',
-    'packages/flutter_markdown/',
-    'packages/flutter_template_images/',
-    'packages/fuchsia_ctl/',
-    'packages/imitation_game/',
     'packages/metrics_center/',
     'packages/multicast_dns/',
+    'packages/espresso/',
     'packages/palette_generator/',
+    'packages/extension_google_sign_in_as_googleapis_auth/',
+    'packages/path_provider/',
+    'packages/file_selector/',
     'packages/pigeon/',
+    'packages/flutter_adaptive_scaffold/',
+    'packages/platform/',
+    'packages/flutter_image/',
+    'packages/plugin_platform_interface/',
+    'packages/flutter_lints/',
     'packages/pointer_interceptor/',
+    'packages/flutter_markdown/',
+    'packages/process/',
+    'packages/flutter_migrate/',
+    'packages/quick_actions/',
+    'packages/flutter_plugin_android_lifecycle/',
+    'packages/rfw/',
+    'packages/flutter_template_images/',
+    'packages/shared_preferences/',
+    'packages/go_router/',
+    'packages/standard_message_codec/',
+    'packages/go_router_builder/',
+    'packages/two_dimensional_scrollables/',
+    'packages/google_identity_services_web/',
+    'packages/url_launcher/',
+    'packages/google_maps_flutter/',
+    'packages/video_player/',
+    'packages/google_sign_in/',
     'packages/web_benchmarks/',
+    'packages/image_picker/',
+    'packages/webview_flutter/',
+    'packages/in_app_purchase/',
     'packages/xdg_directories/',
+    'packages/integration_test/',
   ],
 );
-
-const Repo _kGallery = Repo(name: 'gallery',   path: 'C:\\code\\tmp\\repostats\\repos\\gallery');
-const Repo _kWebsite = Repo(name: 'website',   path: 'C:\\code\\tmp\\repostats\\repos\\website');
-const Repo _kBuildroot = Repo(name: 'buildroot', path: 'C:\\code\\tmp\\repostats\\repos\\buildroot');
-const Repo _kWebInstallers = Repo(name: 'web_installers', path: 'C:\\code\\tmp\\repostats\\repos\\web_installers');
-const Repo _kAssetsForApiDocs = Repo(name: 'assets-for-api-docs', path: 'C:\\code\\tmp\\repostats\\repos\\assets-for-api-docs');
-const Repo _kCocoon = Repo(name: 'cocoon', path: 'C:\\code\\tmp\\repostats\\repos\\cocoon');
-const Repo _kDevtools = Repo(
-  name: 'devtools',
-  path: 'C:\\code\\tmp\\repostats\\repos\\devtools',
-  layers: <String>[
-    'packages/devtools/',
-    'packages/devtools_app/',
-    'packages/devtools_server/',
-    'packages/devtools_shared/',
-  ],
-);
-const Repo _kInfra = Repo(name: 'infra', path: 'C:\\code\\tmp\\repostats\\repos\\infra');
-const Repo _kTests = Repo(name: 'tests', path: 'C:\\code\\tmp\\repostats\\repos\\tests');
-
 
 // An active contributor is someone submitting at least 1 commit/month.
 const int _kActiveContributorCommitCount = 12;
 
 // If the portion of contributions to the main repo is less than this,
 // the contributor is deemed a "cross-repo" contributor.
-const double _kCrossRepoThreshold = 0.8;
+const double _kCrossRepoThreshold = 0.9;
 
 // Pick a pair of repositories and a contributor. If the contributor contributed
 // this much or more to each of the repositories, then the contributor is said
@@ -125,7 +98,7 @@ const double _kCrossRepoThreshold = 0.8;
 const double _kRepoHopperThreshold = 0.1;
 
 // The git stats are collected since this date.
-const String _since = '2020-06-01';
+const String _since = '2023-06-28';
 
 class Repo {
   const Repo({
@@ -142,7 +115,7 @@ class Repo {
   int get hashCode => name.hashCode;
 
   @override
-  bool operator==(Object? other) {
+  bool operator==(Object other) {
     return other is Repo && name == other.name;
   }
 
@@ -170,15 +143,15 @@ class ProjectStats {
 class RepoStats {
   RepoStats({
     required this.repo,
-    required this.allCommits,
+    required List<Commit> allCommits,
   }) {
-    humanCommits = allCommits.where((commit) => !commit.isAutoroll).toList();
+    humanCommits = allCommits.where((commit) => commit.isHuman).toList();
     autorollCommits = allCommits.where((commit) => commit.isAutoroll).toList();
     byAuthorCommitCounts = <String, int>{};
-    final Set<String> uniqueAuthors = <String>{};
-    for (Commit commit in humanCommits) {
-      final String author = commit.author;
-      final int currentCount = byAuthorCommitCounts[author] ?? 0;
+    final uniqueAuthors = <String>{};
+    for (final commit in humanCommits) {
+      final author = commit.author;
+      final currentCount = byAuthorCommitCounts[author] ?? 0;
       byAuthorCommitCounts[author] = currentCount + 1;
       uniqueAuthors.add(author);
     }
@@ -186,7 +159,6 @@ class RepoStats {
   }
 
   final Repo repo;
-  final List<Commit> allCommits;
   late final List<Commit> humanCommits;
   late final List<Commit> autorollCommits;
   late final Map<String, int> byAuthorCommitCounts;
@@ -210,7 +182,7 @@ class AuthorStats {
       .fold<int>(0, (previousValue, element) => previousValue + element.value);
     percentages = Map.fromIterable(
       commits.keys,
-      value: (dynamic author) => (commits[author] as int) / totalCommitCount,
+      value: (dynamic author) => (commits[author]!) / totalCommitCount,
     );
   }
 
@@ -223,41 +195,31 @@ class AuthorStats {
 }
 
 Future<void> main(List<String> args) async {
-  const List<Repo> repos = <Repo>[
+  const repos = <Repo>[
     _kFramework,
     _kEngine,
-    _kPlugins,
     _kPackages,
-    _kGallery,
-    _kWebsite,
-    _kBuildroot,
-    _kWebInstallers,
-    _kAssetsForApiDocs,
-    _kCocoon,
-    _kDevtools,
-    _kInfra,
-    _kTests,
   ];
 
-  final ProjectStats humanStats = await _computeProjectStats(repos);
+  final humanStats = await _computeProjectStats(repos);
   _printHumanAggregates(humanStats);
   await _saveProjectStats('author_stats.tsv', humanStats);
 }
 
 Future<ProjectStats> _computeProjectStats(List<Repo> repos) async {
-  final List<RepoStats> allRepoStats = <RepoStats>[];
-  final Set<String> allAuthors = <String>{};
-  for (Repo repo in repos) {
-    final RepoStats repoStats = await repo.getRepoStats();
+  final allRepoStats = <RepoStats>[];
+  final allAuthors = <String>{};
+  for (final repo in repos) {
+    final repoStats = await repo.getRepoStats();
     allRepoStats.add(repoStats);
     allAuthors.addAll(repoStats.authors);
   }
 
-  final List<AuthorStats> authorStats = <AuthorStats>[];
-  for (String author in allAuthors) {
-    final Map<Repo, int> authorCommits = <Repo, int>{};
-    for (RepoStats repoStats in allRepoStats) {
-      int commitCount = repoStats.byAuthorCommitCounts[author] ?? 0;
+  final authorStats = <AuthorStats>[];
+  for (final author in allAuthors) {
+    final authorCommits = <Repo, int>{};
+    for (final repoStats in allRepoStats) {
+      final commitCount = repoStats.byAuthorCommitCounts[author] ?? 0;
       authorCommits[repoStats.repo] = commitCount;
     }
     authorStats.add(AuthorStats(
@@ -273,33 +235,33 @@ Future<ProjectStats> _computeProjectStats(List<Repo> repos) async {
 }
 
 Future<void> _saveProjectStats(String fileName, ProjectStats projectStats) async {
-  final StringBuffer buf = StringBuffer();
+  final buf = StringBuffer();
 
-  for (Repo repo in projectStats.repos) {
+  for (final repo in projectStats.repos) {
     buf
       ..write('\t')
       ..write(repo.name);
   }
   buf.writeln('\ttotal');
 
-  for (AuthorStats authorStats in projectStats.authorStats) {
+  for (final authorStats in projectStats.authorStats) {
     buf.write(authorStats.author);
-    for (Repo repo in projectStats.repos) {
-      int commits = authorStats.commits[repo]!;
+    for (final repo in projectStats.repos) {
+      final commits = authorStats.commits[repo]!;
       buf.write('\t$commits');
     }
     buf.writeln('\t${authorStats.totalCommitCount}');
   }
-  final io.File statsFile = io.File(fileName);
+  final statsFile = io.File(fileName);
   statsFile.writeAsStringSync(buf.toString());
 }
 
 void _printHumanAggregates(ProjectStats projectStats) {
   print('Statistics since $_since');
-  int totalCommitCount = 0;
-  int totalMultiLayerCommitCount = 0;
-  int totalLayerCommitCount = 0;
-  for (RepoStats repoStats in projectStats.repoStats) {
+  var totalCommitCount = 0;
+  var totalMultiLayerCommitCount = 0;
+  var totalLayerCommitCount = 0;
+  for (final repoStats in projectStats.repoStats) {
     totalCommitCount += repoStats.humanCommits.length;
     totalMultiLayerCommitCount += repoStats.multiLayerCommitCount;
     totalLayerCommitCount += repoStats.multiLayerCommitCount + repoStats.singleLayerCommitCount;
@@ -307,7 +269,7 @@ void _printHumanAggregates(ProjectStats projectStats) {
 
   // All commits
   print('$totalCommitCount commits globally');
-  for (RepoStats repoStats in projectStats.repoStats) {
+  for (final repoStats in projectStats.repoStats) {
     print('  ${repoStats.humanCommits.length} commits in ${repoStats.repo.name}');
   }
 
@@ -315,36 +277,45 @@ void _printHumanAggregates(ProjectStats projectStats) {
   print('$totalLayerCommitCount layer commits globally, $totalMultiLayerCommitCount '
         '(${_percent(totalMultiLayerCommitCount, totalLayerCommitCount)}) cross-layer');
 
-  for (RepoStats repoStats in projectStats.repoStats) {
+  for (final repoStats in projectStats.repoStats) {
     print('  ${repoStats.layerCommitCount} layer commits in ${repoStats.repo.name}, ${repoStats.multiLayerCommitCount} '
           '(${repoStats.crossLayerCommitPortion}) cross-layer');
   }
 
-  final List<AuthorStats> activeContributors = projectStats.authorStats
+  final activeContributors = projectStats.authorStats
     .where((AuthorStats stats) => stats.totalCommitCount >= _kActiveContributorCommitCount)
     .toList();
+  activeContributors.sort((a, b) {
+    return b.totalCommitCount - a.totalCommitCount;
+  });
 
-  int activeContributorCommits = 0;
-  for (AuthorStats contributorStats in activeContributors) {
+  print('Active contributors:');
+  for (final contributor in activeContributors) {
+    print('  > ${contributor.author} (${contributor.totalCommitCount})');
+  }
+
+  var activeContributorCommits = 0;
+  for (final contributorStats in activeContributors) {
     activeContributorCommits += contributorStats.totalCommitCount;
   }
   print('${activeContributors.length} contributors contributed at least 1 commit per month (active contributors).');
   print('$activeContributorCommits commits (or ${_percent(activeContributorCommits, totalCommitCount)} of total) came from active contributors.');
 
   print('Contributors whose main repo portion is ${100 * _kCrossRepoThreshold}% or less are "cross-repo contributors".');
-  final int crossRepoContributors = activeContributors
+  final crossRepoContributors = activeContributors
     .where((AuthorStats stats) => stats.mainRepoLoad < _kCrossRepoThreshold)
-    .length;
-  print('There have been $crossRepoContributors cross-repo contributors (or ${_percent(crossRepoContributors, activeContributors.length)} of all active).');
+    .toList();
+  final crossRepoContributorCount = crossRepoContributors.length;
+  print('There have been $crossRepoContributorCount cross-repo contributors (or ${_percent(crossRepoContributorCount, activeContributors.length)} of all active).');
 
   print('Which repo splits contributors have to work across the most (a.k.a. repo hoppers):');
-  final Map<RepoLink, int> repoLinks = <RepoLink, int>{};
-  for (int i = 0; i < projectStats.repos.length; i++) {
-    final Repo fromRepo = projectStats.repos[i];
-    for (int j = i + 1; j < projectStats.repos.length; j++) {
-      final Repo toRepo = projectStats.repos[j];
-      final RepoLink link = RepoLink(from: fromRepo, to: toRepo);
-      for (AuthorStats authorStats in activeContributors) {
+  final repoLinks = <RepoLink, int>{};
+  for (var i = 0; i < projectStats.repos.length; i++) {
+    final fromRepo = projectStats.repos[i];
+    for (var j = i + 1; j < projectStats.repos.length; j++) {
+      final toRepo = projectStats.repos[j];
+      final link = RepoLink(from: fromRepo, to: toRepo);
+      for (final authorStats in activeContributors) {
         if (authorStats.percentages[fromRepo]! > 0.1 && authorStats.percentages[toRepo]! > _kRepoHopperThreshold) {
           repoLinks[link] ??= 0;
           repoLinks[link] = repoLinks[link]! + 1;
@@ -357,9 +328,9 @@ void _printHumanAggregates(ProjectStats projectStats) {
   });
 
   print('Reverts:');
-  for (RepoStats repoStats in projectStats.repoStats) {
-    int revertCount = 0;
-    for (Commit commit in repoStats.humanCommits) {
+  for (final repoStats in projectStats.repoStats) {
+    var revertCount = 0;
+    for (final commit in repoStats.humanCommits) {
       if (commit.isRevert) {
         revertCount += 1;
       }
@@ -371,14 +342,14 @@ void _printHumanAggregates(ProjectStats projectStats) {
 }
 
 void _printEngineRollStats(ProjectStats projectStats) {
-  final RepoStats frameworkStats = projectStats.statsFor(_kFramework);
+  final frameworkStats = projectStats.statsFor(_kFramework);
 
   print('Engine rolls:');
-  int engineRollRevertCount = 0;
-  int engineRollRevertedCommitCount = 0;
-  for (RepoStats repoStats in projectStats.repoStats) {
-    for (Commit commit in repoStats.humanCommits) {
-      final AutorollInfo? autorollInfo = commit.autorollInfo;
+  var engineRollRevertCount = 0;
+  var engineRollRevertedCommitCount = 0;
+  for (final repoStats in projectStats.repoStats) {
+    for (final commit in repoStats.humanCommits) {
+      final autorollInfo = commit.autorollInfo;
       if (commit.isRevert && autorollInfo != null) {
         if (repoStats.repo == _kFramework) {
           engineRollRevertCount += 1;
@@ -388,11 +359,11 @@ void _printEngineRollStats(ProjectStats projectStats) {
     }
   }
 
-  final int engineRollCount = frameworkStats.autorollCommits.length;
-  final int engineRollCommitCount = frameworkStats.autorollCommits.fold(0, (prev, value) => prev + (value.autorollInfo!.commitCount ?? 0));
-  final int frameworkRevertCount = frameworkStats.humanCommits.where((c) => c.isRevert).length;
-  final String percentOfRollsReverted = _percent(engineRollRevertCount, engineRollCount);
-  final String percentOfReverts = _percent(engineRollRevertCount, frameworkRevertCount);
+  final engineRollCount = frameworkStats.autorollCommits.length;
+  final engineRollCommitCount = frameworkStats.autorollCommits.fold(0, (prev, value) => prev + (value.autorollInfo!.commitCount ?? 0));
+  final frameworkRevertCount = frameworkStats.humanCommits.where((c) => c.isRevert).length;
+  final percentOfRollsReverted = _percent(engineRollRevertCount, engineRollCount);
+  final percentOfReverts = _percent(engineRollRevertCount, frameworkRevertCount);
 
   print('  Engine was rolled $engineRollCount times.');
   print('  $engineRollCommitCount engine commits were rolled into the framework, including rerolled commits.');
@@ -416,7 +387,7 @@ class RepoLink {
   int get hashCode => from.hashCode + 17 * to.hashCode;
 
   @override
-  bool operator==(Object? other) {
+  bool operator==(Object other) {
     return other is RepoLink && from == other.from && to == other.to;
   }
 }
@@ -437,14 +408,14 @@ String _percent(num portion, num total) {
   if (total == 0) {
     return 'N/A';
   }
-  final double percent = 100 * portion / total;
+  final percent = 100 * portion / total;
   return '${percent.toStringAsFixed(2)}%';
 }
 
 final RegExp _commitLinePrefix = RegExp(r'commit ([a-z0-9]{40})');
 
 Future<List<Commit>> _gitLog(Repo repo) async {
-  final io.Process gitLog = await io.Process.start(
+  final gitLog = await io.Process.start(
     'git', ['log', '--since="$_since"', '--date=iso8601', '--name-only'],
     workingDirectory: repo.path,
   );
@@ -456,9 +427,9 @@ Future<List<Commit>> _gitLog(Repo repo) async {
   StringBuffer? message;
   List<String>? files;
 
-  final List<Commit> commits = <Commit>[];
+  final commits = <Commit>[];
 
-  void _flushCommit() {
+  void flushCommit() {
     commits.add(Commit(
       repo: repo,
       sha: sha!,
@@ -474,7 +445,7 @@ Future<List<Commit>> _gitLog(Repo repo) async {
     files = null;
   }
 
-  final List<String> lines = <String>[];
+  final lines = <String>[];
   gitLog.stdout
     .transform(const Utf8Decoder())
     .transform(const LineSplitter())
@@ -482,13 +453,13 @@ Future<List<Commit>> _gitLog(Repo repo) async {
 
   await gitLog.exitCode;
 
-  for (final String line in lines) {
-    final String trimmedLine = line.trim();
+  for (final line in lines) {
+    final trimmedLine = line.trim();
     try {
-      final Match? commitStart = _commitLinePrefix.matchAsPrefix(line);
+      final commitStart = _commitLinePrefix.matchAsPrefix(line);
       if (commitStart != null) {
         if (sha != null) {
-          _flushCommit();
+          flushCommit();
         }
         sha = commitStart.group(1);
         message = StringBuffer();
@@ -510,7 +481,7 @@ Future<List<Commit>> _gitLog(Repo repo) async {
     }
   }
   if (sha != null) {
-    _flushCommit();
+    flushCommit();
   }
   return commits;
 }
@@ -526,25 +497,30 @@ enum CrossLayer {
 
 class Commit {
   factory Commit({
-    required repo,
-    required sha,
-    required author,
-    required date,
-    required message,
-    required files,
+    required Repo repo,
+    required String sha,
+    required String author,
+    required DateTime date,
+    required String message,
+    required List<String> files,
   }) {
-    final List<String> messageLines = message
+    final messageLines = message
       .split('\n')
       .where((String line) => line.trim().isNotEmpty)
       .toList();
-    final bool isAutoroll = author.contains('-autoroll');
-    final bool isRevert = message.trim().toLowerCase().startsWith('revert');
+    final isAutoroll = author.contains('-autoroll');
+    final isBot =
+      author.contains('dependabot') ||
+      author.contains('pub-roller-bot') ||
+      author.contains('auto-submit') ||
+      author.contains('Flutter GitHub Bot');
+    final isRevert = message.trim().toLowerCase().startsWith('revert');
 
     String? revertedCommit;
     if (isRevert) {
-      for (String line in messageLines) {
-        const String revertMessage = 'This reverts commit';
-        final int indexOfRevertMessage = line.indexOf(revertMessage);
+      for (final line in messageLines) {
+        const revertMessage = 'This reverts commit';
+        final indexOfRevertMessage = line.indexOf(revertMessage);
         if (indexOfRevertMessage != -1) {
           revertedCommit = line.substring(indexOfRevertMessage + revertMessage.length).trim();
           break;
@@ -563,6 +539,7 @@ class Commit {
       crossLayer: _getCrossLayerType(repo, files),
       isRevert: isRevert,
       revertedCommit: revertedCommit,
+      isBot: isBot,
       isAutoroll: isAutoroll,
       autorollInfo: AutorollInfo.fromMessage(
         messageLines: messageLines,
@@ -583,6 +560,7 @@ class Commit {
     required this.crossLayer,
     required this.isRevert,
     required this.revertedCommit,
+    required this.isBot,
     required this.isAutoroll,
     required this.autorollInfo,
   });
@@ -591,15 +569,15 @@ class Commit {
     if (repo.layers.isEmpty) {
       return CrossLayer.nonLayer;
     }
-    final Set<String> changedLayers = <String>{};
-    for (String file in files) {
-      for (String layer in repo.layers) {
+    final changedLayers = <String>{};
+    for (final file in files) {
+      for (final layer in repo.layers) {
         if (file.startsWith(layer)) {
           changedLayers.add(layer);
         }
       }
     }
-    if (changedLayers.length == 0) {
+    if (changedLayers.isEmpty) {
       return CrossLayer.nonLayer;
     } else if (changedLayers.length == 1) {
       return CrossLayer.singleLayer;
@@ -618,11 +596,16 @@ class Commit {
   final CrossLayer crossLayer;
   final bool isRevert;
   final String? revertedCommit;
-  final isAutoroll;
+  final bool isBot;
+  final bool isAutoroll;
   final AutorollInfo? autorollInfo;
 
+  bool get isHuman => !isBot && !isAutoroll;
+
+  @override
   String toString() {
-    return '''commit $sha
+    return '''
+commit $sha
 Author: $author
 Date:   $date
 $message
@@ -663,16 +646,14 @@ class AutorollInfo {
       }
 
       final Match? revisionCountMatch = _kRollRevisionCount.firstMatch(messageLines.first);
-      final int? commitCount = revisionCountMatch != null
+      final commitCount = revisionCountMatch != null
         ? int.parse(revisionCountMatch.group(1)!)
         : null;
 
       Match? revisionRangeMatch = _kRevisionRange.firstMatch(messageLines.first);
-      if (revisionRangeMatch == null) {
-        revisionRangeMatch = _kFuchsiaRevisionRange.firstMatch(messageLines.first);
-      }
-      final String? fromCommit = revisionRangeMatch?.group(1)!;
-      final String? toCommit = revisionRangeMatch?.group(2)!;
+      revisionRangeMatch ??= _kFuchsiaRevisionRange.firstMatch(messageLines.first);
+      final fromCommit = revisionRangeMatch?.group(1);
+      final toCommit = revisionRangeMatch?.group(2);
 
       return AutorollInfo(
         commitCount: commitCount,
