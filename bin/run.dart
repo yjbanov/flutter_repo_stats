@@ -16,9 +16,7 @@ import 'dart:convert';
 import 'dart:io' as io;
 import 'package:args/args.dart';
 
-const String repoCheckoutRoot = '/Users/yjbanov/code/tmp/repostats';
-
-const Repo _kFramework = Repo(
+Repo _kFramework = Repo(
   name: 'framework',
   path: '$repoCheckoutRoot/flutter',
   layers: <String>[
@@ -45,12 +43,12 @@ const Repo _kFramework = Repo(
   ],
 );
 
-const Repo _kEngine = Repo(
+Repo _kEngine = Repo(
   name: 'engine',
   path: '$repoCheckoutRoot/engine',
 );
 
-const Repo _kPackages = Repo(
+Repo _kPackages = Repo(
   name: 'packages',
   path: '$repoCheckoutRoot/packages',
   layers: <String>[
@@ -220,16 +218,25 @@ final ArgParser _argParser = ArgParser()
   ..addFlag('verbose');
 
 late bool verbose;
+late String repoCheckoutRoot;
 
 Future<void> main(List<String> rawArgs) async {
   final args = _argParser.parse(rawArgs);
   verbose = args.flag('verbose');
+  repoCheckoutRoot = args.rest.isNotEmpty ? args.rest.single : 'repos';
 
-  const repos = <Repo>[
+  print('Looking for repos in ${io.Directory(repoCheckoutRoot).absolute.path}');
+  _checkDir(repoCheckoutRoot);
+
+  final repos = <Repo>[
     _kFramework,
     _kEngine,
     _kPackages,
   ];
+
+  for (final repo in repos) {
+    _checkDir(repo.path);
+  }
 
   final humanStats = await _computeProjectStats(repos);
   _printHumanAggregates(humanStats);
@@ -262,6 +269,13 @@ Future<ProjectStats> _computeProjectStats(List<Repo> repos) async {
     repoStats: allRepoStats,
     authorStats: authorStats,
   );
+}
+
+void _checkDir(String path) {
+  final dir = io.Directory(path);
+  if (!dir.existsSync()) {
+    throw StateError('Directory does not exist: ${path}');
+  }
 }
 
 Future<void> _saveProjectStats(String fileName, ProjectStats projectStats) async {
