@@ -330,6 +330,12 @@ void _printHumanAggregates(ProjectStats projectStats) {
     totalHumanCommitCount += repoStats.humanAuthoredCommits.length;
     totalBotCommitCount += repoStats.botCommits.length;
   }
+  final activeContributors = projectStats.authorStats
+    .where((AuthorStats stats) => stats.totalCommitCount >= _kActiveContributorCommitCount)
+    .toList();
+  activeContributors.sort((a, b) {
+    return b.totalCommitCount - a.totalCommitCount;
+  });
 
   // All commits
   print('$totalHumanCommitCount human commits globally');
@@ -337,7 +343,7 @@ void _printHumanAggregates(ProjectStats projectStats) {
     print('  ${repoStats.humanAuthoredCommits.length} commits in ${repoStats.repo.name}');
   }
 
-  cost.addInfraComplexityCost(totalHumanCommitCount);
+  cost.addInfraComplexityCost(totalHumanCommitCount, activeContributors.length);
 
   // Bots
   print('${totalBotCommitCount} bot commits globally');
@@ -365,12 +371,6 @@ void _printHumanAggregates(ProjectStats projectStats) {
 
   // Active contributors
   print('Active contributors:');
-  final activeContributors = projectStats.authorStats
-    .where((AuthorStats stats) => stats.totalCommitCount >= _kActiveContributorCommitCount)
-    .toList();
-  activeContributors.sort((a, b) {
-    return b.totalCommitCount - a.totalCommitCount;
-  });
 
   var activeContributorCommits = 0;
   for (final contributorStats in activeContributors) {
@@ -465,6 +465,7 @@ void _printEngineRollStats(ProjectStats projectStats) {
   cost.addManualEngineRollCost(manualEngineRollCount);
   cost.addRollRevertCost(engineRollRevertCount);
 
+  // TODO: why is engineRollCount > versionUpdateCount? That shouldn't be the case.
   print('  Version updated ${versionUpdateCount} times.');
   print('  Auto-rolled ${engineRollCount} times.');
   print('  Manually rolled ${manualEngineRollCount} times.');
@@ -815,37 +816,55 @@ class Cost {
   Cost();
 
   final Map<String, double> _costs = <String, double>{};
+  final Map<String, String> _explainers = <String, String>{};
 
-  void _addCost(String category, double hours) {
-    final currentCost = _costs.putIfAbsent(category, () => 0);
-    _costs[category] = currentCost + hours;
+  void _addCost(String category, double hours, String explainer) {
+    if (_costs.containsKey(category)) {
+      throw StateError('Category "$category" already exists.');
+    }
+    _costs[category] = hours;
+    _explainers[category] = explainer;
   }
 
   /// See `infraComplexity` in `costs.yaml`.
-  void addInfraComplexityCost(int totalHumanCommitCount) {
+  void addInfraComplexityCost(int totalHumanCommitCount, int activeContributorCount) {
+    final cost = totalHumanCommitCount * costPerCommit.infraComplexity;
+    final perContributor = cost / activeContributorCount;
     _addCost(
       'Infra complexity',
-      totalHumanCommitCount * costPerCommit.infraComplexity,
+      cost,
+      '${perContributor.toStringAsFixed(1)} per contributor',
     );
   }
 
   /// See `crossRepoOverhead` in `costs.yaml`.
   void addCrossRepoOverhead(List<AuthorStats> crossRepoContributors, double estimatedCrossRepoCommitRatio) {
+    var cost = 0.0;
     for (final authorStats in crossRepoContributors) {
-      _addCost(
-        'Cross-repo overhead',
-        estimatedCrossRepoCommitRatio * authorStats.totalCommitCount * costPerCommit.crossRepoOverhead,
-      );
+      cost += estimatedCrossRepoCommitRatio * authorStats.totalCommitCount * costPerCommit.crossRepoOverhead;
     }
+
+    final perContributor = cost / crossRepoContributors.length;
+    _addCost(
+      'Cross-repo overhead',
+      cost,
+      '${perContributor.toStringAsFixed(1)} per cross-repo contributor',
+    );
   }
 
   /// See `siloedDevelopment` in `costs.yaml`.
   void addSiloedDevelopmentCost(List<AuthorStats> siloedContributors) {
+    final cost = siloedContributors
+      .map<double>((a) => a.totalCommitCount * costPerCommit.siloedDevelopment)
+      .fold<double>(0.0, (a, b) => a + b);
+    final perContributor = cost / siloedContributors.length;
+
     _addCost(
       'Siloed development',
       siloedContributors
         .map<double>((a) => a.totalCommitCount * costPerCommit.siloedDevelopment)
         .fold(0, (a, b) => a + b),
+      '${perContributor.toStringAsFixed(1)} per siloed contributor',
     );
   }
 
@@ -854,6 +873,7 @@ class Cost {
     _addCost(
       'Manual engine roll',
       manualEngineRollCount * costPerCommit.manualEngineRoll,
+      '${costPerCommit.manualEngineRoll} per roll'
     );
   }
 
@@ -862,6 +882,7 @@ class Cost {
     _addCost(
       'Roll reverts',
       engineRollRevertCount * costPerCommit.rollRevert,
+      '${costPerCommit.manualEngineRoll} per revert'
     );
   }
 
@@ -870,7 +891,7 @@ class Cost {
     print('Costs:');
     _costs.forEach((category, hours) {
       total += hours;
-      print('  ${category}: ${hours.toStringAsFixed(0)} SWE hours');
+      print('  ${category}: ${hours.toStringAsFixed(0)} SWE hours (${_explainers[category]})');
     });
     print('');
     print('  TOTAL: ${total.toStringAsFixed(0)} SWE hours (${(total / 2000).toStringAsFixed(1)} full-time SWEs)');
