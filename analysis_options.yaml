@@ -39,7 +39,6 @@ linter:
     - camel_case_extensions
     - camel_case_types
     - cancel_subscriptions
-    - cast_nullable_to_non_nullable
     - collection_methods_unrelated_type
     - combinators_ordering
     - conditional_uri_does_not_exist

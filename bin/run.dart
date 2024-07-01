@@ -14,7 +14,9 @@
 
 import 'dart:convert';
 import 'dart:io' as io;
+
 import 'package:args/args.dart';
+import 'package:yaml/yaml.dart';
 
 Repo _kFramework = Repo(
   name: 'framework',
@@ -137,6 +139,9 @@ class Repo {
       allCommits: await _gitLog(this),
     );
   }
+
+  @override
+  String toString() => name;
 }
 
 class ProjectStats {
@@ -224,6 +229,7 @@ late String repoCheckoutRoot;
 late String since;
 
 final Cost cost = Cost();
+late final CostPerCommit costPerCommit;
 
 Future<void> main(List<String> rawArgs) async {
   final args = _argParser.parse(rawArgs);
@@ -235,6 +241,10 @@ Future<void> main(List<String> rawArgs) async {
   } else {
     since = DateTime.now().subtract(const Duration(days: 365)).toString().substring(0, 10);
   }
+
+  costPerCommit = CostPerCommit.parse(
+    (loadYamlNode(io.File('costs.yaml').readAsStringSync()) as YamlMap).cast<String, double>(),
+  );
 
   print('Looking for repos in ${io.Directory(repoCheckoutRoot).absolute.path}');
   _checkDir(repoCheckoutRoot);
@@ -362,12 +372,6 @@ void _printHumanAggregates(ProjectStats projectStats) {
     return b.totalCommitCount - a.totalCommitCount;
   });
 
-  if (verbose) {
-    for (final contributor in activeContributors) {
-      print('  > ${contributor.author} (${contributor.totalCommitCount})');
-    }
-  }
-
   var activeContributorCommits = 0;
   for (final contributorStats in activeContributors) {
     activeContributorCommits += contributorStats.totalCommitCount;
@@ -388,6 +392,18 @@ void _printHumanAggregates(ProjectStats projectStats) {
 
   final siloedContributors = activeContributors.toSet().difference(crossRepoContributors.toSet()).toList();
   print('  There have been ${siloedContributors.length} siloed contributors (${_percent(siloedContributors.length, activeContributors.length)}).');
+
+  if (verbose) {
+    for (final contributor in activeContributors) {
+      final nonEmptyCommits = Map<Repo, int>.from(contributor.commits);
+      nonEmptyCommits.removeWhere((repo, count) => count == 0);
+      print(
+        '  > ${contributor.author} '
+        '${crossRepoContributors.contains(contributor) ? '[x-repo]' : '[siloed]'} '
+        '(commits ${contributor.totalCommitCount} ${nonEmptyCommits})',
+      );
+    }
+  }
 
   cost.addSiloedDevelopmentCost(siloedContributors);
 
@@ -805,84 +821,48 @@ class Cost {
     _costs[category] = currentCost + hours;
   }
 
-  /// Cost of the extra infra complexity and opportunity cost of missing infra
-  /// features that were not implemented due to too much cost, including:
-  ///
-  /// * Flakiness
-  /// * Lack of downstream testing
-  /// * Lack of framework-engine integration functional testing
-  /// * Lack of framework golden testing on engine commits
-  /// * Lack of "Google Testing" in the engine
-  /// * Lack of flake detection in the engine
-  /// * Lack of unified dependency management
-  /// * Cost of having to maintain the additional infra complexity
-  /// * Repeated effort to bring up identical infra per repo
-  ///
-  /// Cost: 2 hours/commit
+  /// See `infraComplexity` in `costs.yaml`.
   void addInfraComplexityCost(int totalHumanCommitCount) {
     _addCost(
       'Infra complexity',
-      totalHumanCommitCount * 1.0,
+      totalHumanCommitCount * costPerCommit.infraComplexity,
     );
   }
 
-  /// The cost from having to do development across multiple repos.
-  ///
-  /// The cost is estimated by looking how often cross-layer changes are made in
-  /// the framework and assumes the same ratio of engine changes that also need
-  /// corresponding changes in the framework.
-  ///
-  /// Cost: 8 hours per commit that needed to be split across repos.
+  /// See `crossRepoOverhead` in `costs.yaml`.
   void addCrossRepoOverhead(List<AuthorStats> crossRepoContributors, double estimatedCrossRepoCommitRatio) {
     for (final authorStats in crossRepoContributors) {
       _addCost(
         'Cross-repo overhead',
-        estimatedCrossRepoCommitRatio * authorStats.totalCommitCount * 8,
+        estimatedCrossRepoCommitRatio * authorStats.totalCommitCount * costPerCommit.crossRepoOverhead,
       );
     }
   }
 
-  /// Opportunity cost from siloed development. Due to the high barrier of cross
-  /// repo development, a significant portion of the core team chooses to stick
-  /// with the comfort of working with only one repo. This prevents the team from
-  /// tackling the more difficult but more impactful issues that require full
-  /// stack changes in the system. A significant portion of the team simply
-  /// chooses to not work on those issues.
-  ///
-  /// Cost: 5 hours/commit
+  /// See `siloedDevelopment` in `costs.yaml`.
   void addSiloedDevelopmentCost(List<AuthorStats> siloedContributors) {
+    print('Siloed development:');
     _addCost(
       'Siloed development',
       siloedContributors
-        .map<double>((a) => a.commits.length * 5.0)
+        .map<double>((a) => a.totalCommitCount * costPerCommit.siloedDevelopment)
         .fold(0, (a, b) => a + b),
     );
   }
 
-  /// Cost from having to roll the engine manually. This likely meant that the
-  /// automatic roll was manually cancelled, or reverted. The author of the engine
-  /// change had to take over, and get it over the finish line without the roller
-  /// assistance. This also likely means that the autoroller was stopped an unable
-  /// to roll other engine changes, increasing the latency for the entire engine,
-  /// dart, and skia teams.
-  ///
-  /// Cost: 24 hours (3 days)
+  /// See `manualEngineRoll` in `costs.yaml`.
   void addManualEngineRollCost(int manualEngineRollCount) {
     _addCost(
       'Manual engine roll',
-      manualEngineRollCount * 24,
+      manualEngineRollCount * costPerCommit.manualEngineRoll,
     );
   }
 
-  /// Cost from having to revert an engine roll. This likely meant the author had
-  /// to stop the next task they were working on and fix the issue in the engine
-  /// before letting it roll again.
-  ///
-  /// Cost: 32 hours (4 days)
+  /// See `rollRevert` in `costs.yaml`.
   void addRollRevertCost(int engineRollRevertCount) {
     _addCost(
       'Roll reverts',
-      engineRollRevertCount * 32,
+      engineRollRevertCount * costPerCommit.rollRevert,
     );
   }
 
@@ -896,4 +876,19 @@ class Cost {
     print('');
     print('  TOTAL: ${total.toStringAsFixed(0)} SWE hours (${(total / 2000).toStringAsFixed(1)} full-time SWEs)');
   }
+}
+
+class CostPerCommit {
+  CostPerCommit.parse(Map<String, double> yaml)
+    : infraComplexity = yaml['infraComplexity'] as double,
+      crossRepoOverhead = yaml['crossRepoOverhead'] as double,
+      siloedDevelopment = yaml['siloedDevelopment'] as double,
+      manualEngineRoll = yaml['manualEngineRoll'] as double,
+      rollRevert = yaml['rollRevert'] as double;
+
+  final double infraComplexity;
+  final double crossRepoOverhead;
+  final double siloedDevelopment;
+  final double manualEngineRoll;
+  final double rollRevert;
 }

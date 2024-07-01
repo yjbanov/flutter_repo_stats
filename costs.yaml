@@ -1,0 +1,65 @@
+# Cost is measured in SWE hours.
+
+# Productivity loss due to infra complexity, fragility, and missing eng prod
+# features.
+#
+# Sources of cost:
+#
+#   * Flakiness
+#   * Lack of downstream testing
+#   * Lack of framework-engine integration functional testing
+#   * Lack of framework golden testing on engine commits
+#   * Lack of "Google Testing" in the engine
+#   * Lack of flake detection in the engine
+#   * Lack of unified dependency management
+#   * Cost of having to maintain the additional infra complexity
+#   * Cost of repeated effort to bring up identical infra per repo
+infraComplexity: 1.0 # SWE hours per commit
+
+# Productivity loss when making a change that touches multiple repos.
+#
+# Sources of cost:
+#
+#   * Technical debt (e.g. https://github.com/flutter/flutter/issues/141734)
+#   * Multi-PR "dance" to land one change (e.g. https://github.com/flutter/flutter/issues/141734#issuecomment-2141054607)
+#   * Roll latency
+#   * Context switch from lack of atomicity
+#   * Multi-repo reverts
+#   * Multi-repo bisection
+#
+# The cost is estimated by looking at how often cross-layer changes are made in
+# the framework and assuming a similar ratio of changes that cross the engine
+# and the framework.
+crossRepoOverhead: 8.0 # SWE hours per commit
+
+# Opportunity cost from siloed development.
+#
+# Due to the high barrier of cross repo development, a significant portion of
+# the team chooses to stay in the comfort zone of working with one repo. This
+# prevents the team from tackling the more difficult but more impactful issues
+# that require full stack changes in the system.
+siloedDevelopment: 1.0 # SWE hours per commit
+
+# Cost of a manual engine roll.
+#
+# Includes SWE hours spent by people directly involved in the manual roll,
+# likely more than one, and cost of the latency introduced to the rest of the
+# team.
+#
+# When an engine roll fails to auto-roll, it typically means that the automatic
+# roll was manually cancelled, or reverted, likely by a person different from
+# the author of the breaking change (e.g. the engine sherriff). The author of
+# the engine change had to take over, and get it over the finish line without
+# the auto-roller's assistance. This also likely means that the autoroller was
+# stopped an unable to roll other engine changes, increasing the latency for all
+# upstream repos.
+manualEngineRoll: 24.0 # SWE hours lost to a single manual roll
+
+# Cost of an engine revert.
+#
+# Includes SWE hours spent by people directly involved in the revert, and the
+# cost of the latency introduced to the rest of the team.
+#
+# An engine revert likely meant the author had to stop the next task they were
+# working on and fix the issue in the engine before letting it roll again.
+rollRevert: 24.0 # SWE hours lost to a single engine revert
