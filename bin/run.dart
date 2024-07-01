@@ -841,7 +841,6 @@ class Cost {
 
   /// See `siloedDevelopment` in `costs.yaml`.
   void addSiloedDevelopmentCost(List<AuthorStats> siloedContributors) {
-    print('Siloed development:');
     _addCost(
       'Siloed development',
       siloedContributors
