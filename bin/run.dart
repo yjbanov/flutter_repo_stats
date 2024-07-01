@@ -458,18 +458,20 @@ void _printEngineRollStats(ProjectStats projectStats) {
   }
 
   final versionUpdateCount = frameworkStats.allCommits.count((c) => c.isEngineVersionChange);
-  final engineRollCount = frameworkStats.autorollCommits.length;
+  final engineRollCount = frameworkStats.autorollCommits.where((c) => c.isEngineAutoRoll).length;
   final manualEngineRollCount = frameworkStats.humanInitiatedCommits.count((c) => c.isManualEngineRoll);
   final engineRollCommitCount = frameworkStats.autorollCommits.fold<int>(0, (prev, value) => prev + (value.autorollInfo!.commitCount ?? 0));
 
   cost.addManualEngineRollCost(manualEngineRollCount);
   cost.addRollRevertCost(engineRollRevertCount);
 
-  // TODO: why is engineRollCount > versionUpdateCount? That shouldn't be the case.
-  print('  Version updated ${versionUpdateCount} times.');
-  print('  Auto-rolled ${engineRollCount} times.');
-  print('  Manually rolled ${manualEngineRollCount} times.');
-  print('  Rolls reverted ${engineRollRevertCount} times (once every ${(365 / engineRollRevertCount).toStringAsFixed(1)} days).');
+  print('  Version updated ${versionUpdateCount} times:');
+  print('    Auto-rolled ${engineRollCount} times.');
+  print('    Manually rolled ${manualEngineRollCount} times.');
+  print('    Rolls reverted ${engineRollRevertCount} times (once every ${(365 / engineRollRevertCount).toStringAsFixed(1)} days).');
+  if (engineRollCount + manualEngineRollCount + engineRollRevertCount != versionUpdateCount) {
+    print('    WARNING: ${engineRollCount} + ${manualEngineRollCount} + ${engineRollRevertCount} = ${engineRollCount + manualEngineRollCount + engineRollRevertCount} != ${versionUpdateCount}');
+  }
   print('  ${engineRollCommitCount} engine commits were rolled into the framework, including rerolled commits.');
   print('  On average an engine roll is reverted once every ${(365 / engineRollRevertCount).toStringAsFixed(1)} days');
   print('  Engine reverts reverted ${engineRollRevertedCommitCount} commits.');
@@ -724,7 +726,11 @@ class Commit {
   final bool isEngineVersionChange;
   final AutorollInfo? autorollInfo;
 
-  bool get isManualEngineRoll => isHumanInitiated && isEngineVersionChange && !isRevert;
+  bool get isManualEngineRoll => repo == _kFramework && isHumanInitiated && isEngineVersionChange && !isRevert;
+
+  /// The autoroller rolls things other than the engine, but packages also. This
+  /// isolates engine rolls specifically.
+  bool get isEngineAutoRoll => repo == _kFramework && isAutoroll && isEngineVersionChange;
 
   /// Commit contents were hand-written with no automation.
   bool get isHumanAuthored => !isBot;
