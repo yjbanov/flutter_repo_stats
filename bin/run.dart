@@ -221,9 +221,25 @@ class AuthorStats {
 
 final ArgParser _argParser = ArgParser()
   ..addFlag('verbose')
+  ..addFlag('explain')
   ..addOption('since');
 
-late bool verbose;
+late bool _verbose;
+
+void verbose(Object? message) {
+  if (_verbose) {
+    print(message);
+  }
+}
+
+late bool _explain;
+
+void explain(String explanation) {
+  if (_explain) {
+    print(explanation);
+  }
+}
+
 late String repoCheckoutRoot;
 // The git stats are collected since this date.
 late String since;
@@ -233,7 +249,8 @@ late final CostPerCommit costPerCommit;
 
 Future<void> main(List<String> rawArgs) async {
   final args = _argParser.parse(rawArgs);
-  verbose = args.flag('verbose');
+  _verbose = args.flag('verbose');
+  _explain = args.flag('explain');
   repoCheckoutRoot = args.rest.isNotEmpty ? args.rest.single : 'repos';
 
   if (args.wasParsed('since')) {
@@ -246,7 +263,7 @@ Future<void> main(List<String> rawArgs) async {
     (loadYamlNode(io.File('costs.yaml').readAsStringSync()) as YamlMap).cast<String, double>(),
   );
 
-  print('Looking for repos in ${io.Directory(repoCheckoutRoot).absolute.path}');
+  verbose('Looking for repos in ${io.Directory(repoCheckoutRoot).absolute.path}');
   _checkDir(repoCheckoutRoot);
 
   final repos = <Repo>[
@@ -323,7 +340,7 @@ Future<void> _saveProjectStats(String fileName, ProjectStats projectStats) async
 }
 
 void _printHumanAggregates(ProjectStats projectStats) {
-  print('Statistics between $since and ${DateTime.now().toString().substring(0, 10)}');
+  print('Statistics between $since and ${DateTime.now().toString().substring(0, 10)}\n');
   var totalHumanCommitCount = 0;
   var totalBotCommitCount = 0;
   for (final repoStats in projectStats.repoStats) {
@@ -337,7 +354,21 @@ void _printHumanAggregates(ProjectStats projectStats) {
     return b.totalCommitCount - a.totalCommitCount;
   });
 
+  final inactiveContributors = projectStats.authorStats
+    .where((AuthorStats stats) => stats.totalCommitCount < _kActiveContributorCommitCount)
+    .toList();
+  inactiveContributors.sort((a, b) {
+    return b.totalCommitCount - a.totalCommitCount;
+  });
+
   // All commits
+  explain('''
+/// Human-authored commits are manually written, not simply human-initiated.
+///
+/// Examples of human-authored commit include bug fixes, feature implementations,
+/// tool changes. An example of human-initiated but not human authored commit is
+/// a revert using the `revert` label. A human put the label, but the rest is
+/// largely automated.''');
   print('$totalHumanCommitCount human commits globally');
   for (final repoStats in projectStats.repoStats) {
     print('  ${repoStats.humanAuthoredCommits.length} commits in ${repoStats.repo.name}');
@@ -346,12 +377,30 @@ void _printHumanAggregates(ProjectStats projectStats) {
   cost.addInfraComplexityCost(totalHumanCommitCount, activeContributors.length);
 
   // Bots
+  print('');
+  explain('''
+/// Commits from autorollers, autosubmits, dependabots, pub rollers, and Github bots.
+///
+/// A bot commit may be human-initiated, but if so, it is largely automated, e.g.
+/// automated reverts using the `revert` label.''');
   print('${totalBotCommitCount} bot commits globally');
   for (final repoStats in projectStats.repoStats) {
     print('  ${repoStats.botCommits.length} bot commits in ${repoStats.repo.name}');
   }
 
   // Cross-layer commits
+  print('');
+  explain('''
+/// Commits that change more than one layer in the system.
+///
+/// The word "layer" is used as in "layered architecture". A layer on top depends
+/// on layers below but not vice versa. Technically, each layer could be moved
+/// into its own package/repo. Then the development of that layer could take
+/// place in isolation from the other layers. A "cross-layer commit" is a single
+/// commit that changes multiple layers at once. This number is used to make an
+/// educated guess about how often a change in the engine also needs a change in
+/// the framework and vice versa. It is later used to compute the cost of
+/// "Cross-repo overhead".''');
   print('Cross-layer commits:');
   late final double estimatedCrossRepoCommitRatio;
 
@@ -370,14 +419,20 @@ void _printHumanAggregates(ProjectStats projectStats) {
   }
 
   // Active contributors
+  print('');
+  explain('''
+/// Contributors who make regular contributions (at least once per month) are
+/// considered "active contributors".''');
   print('Active contributors:');
 
   var activeContributorCommits = 0;
   for (final contributorStats in activeContributors) {
     activeContributorCommits += contributorStats.totalCommitCount;
   }
-  print(' ${activeContributors.length} contributors contributed at least 1 commit per month (active contributors).');
-  print(' $activeContributorCommits commits (or ${_percent(activeContributorCommits, totalHumanCommitCount)} of total) came from active contributors.');
+  print('  There are ${activeContributors.length} active contributors.');
+  print('  $activeContributorCommits commits (or ${_percent(activeContributorCommits, totalHumanCommitCount)} of total) came from active contributors.');
+
+  print('  There are ${inactiveContributors.length} inactive contributors.');
 
   print('Cross-repo contributions:');
   print('  Contributors whose main repo portion is ${100 * _kCrossRepoThreshold}% or less are "cross-repo contributors".');
@@ -393,8 +448,19 @@ void _printHumanAggregates(ProjectStats projectStats) {
   final siloedContributors = activeContributors.toSet().difference(crossRepoContributors.toSet()).toList();
   print('  There have been ${siloedContributors.length} siloed contributors (${_percent(siloedContributors.length, activeContributors.length)}).');
 
-  if (verbose) {
+  if (_verbose) {
+    print('Active contributors:');
     for (final contributor in activeContributors) {
+      final nonEmptyCommits = Map<Repo, int>.from(contributor.commits);
+      nonEmptyCommits.removeWhere((repo, count) => count == 0);
+      print(
+        '  > ${contributor.author} '
+        '${crossRepoContributors.contains(contributor) ? '[x-repo]' : '[siloed]'} '
+        '(commits ${contributor.totalCommitCount} ${nonEmptyCommits})',
+      );
+    }
+    print('Inactive contributors:');
+    for (final contributor in inactiveContributors) {
       final nonEmptyCommits = Map<Repo, int>.from(contributor.commits);
       nonEmptyCommits.removeWhere((repo, count) => count == 0);
       print(

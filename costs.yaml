@@ -14,7 +14,7 @@
 #   * Lack of unified dependency management
 #   * Cost of having to maintain the additional infra complexity
 #   * Cost of repeated effort to bring up identical infra per repo
-infraComplexity: 1.0 # SWE hours per commit
+infraComplexity: 0.0 # SWE hours per commit
 
 # Productivity loss when making a change that touches multiple repos.
 #
