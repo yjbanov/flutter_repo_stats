@@ -19,7 +19,7 @@ import 'package:args/args.dart';
 import 'package:yaml/yaml.dart';
 
 Repo _kFramework = Repo(
-  name: 'framework',
+  name: 'flutter',
   path: '$repoCheckoutRoot/flutter',
   layers: <String>[
     'packages/flutter/lib/src/animation/',
@@ -42,12 +42,13 @@ Repo _kFramework = Repo(
     'packages/flutter_web_plugins/',
     'packages/flutter_remote_debug_protocol/',
     'packages/integration_test/',
+    'engine/src/flutter',
   ],
 );
 
-Repo _kEngine = Repo(
-  name: 'engine',
-  path: '$repoCheckoutRoot/engine',
+Repo _kCocoon = Repo(
+  name: 'cocoon',
+  path: '$repoCheckoutRoot/cocoon',
 );
 
 Repo _kPackages = Repo(
@@ -268,8 +269,8 @@ Future<void> main(List<String> rawArgs) async {
 
   final repos = <Repo>[
     _kFramework,
-    _kEngine,
     _kPackages,
+    _kCocoon,
   ];
 
   for (final repo in repos) {
